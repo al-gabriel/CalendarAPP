@@ -1,18 +1,18 @@
 [
   {
     "id": "trip_1",
-    "departure_date": "10-06-2040",
-    "return_date": "20-06-2040",
-    "from_airport": "IJF",
-    "to_airport": "SOS",
-    "notes": "Summer holiday - example short trip (<14 days)"
+    "departure_date": "10-06-2023",
+    "return_date": "20-06-2023", 
+    "from_airport": "LHR",
+    "to_airport": "LIS",
+    "notes": "Summer holiday – example short trip (<14 days)"
   },
   {
-    "id": "trip_2",
-    "departure_date": "01-12-2040",
-    "return_date": "15-01-2041",
-    "from_airport": "IJF",
-    "to_airport": "SOS",
-    "notes": "Christmas and New Year - example long trip (>=14 days)"
+    "id": "trip_2", 
+    "departure_date": "01-12-2024",
+    "return_date": "15-01-2025",
+    "from_airport": "LHR",
+    "to_airport": "OPO", 
+    "notes": "Christmas and New Year – example long trip (>=14 days)"
   }
 ]

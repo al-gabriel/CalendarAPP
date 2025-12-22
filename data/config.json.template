@@ -1,8 +1,8 @@
 {
   "travel_pdf_folder": "../travel_pdfs",
-  "objective_years": 15,
+  "objective_years": 10,
   "processing_buffer_years": 1,
-  "start_year": 1990,
-  "end_year": 3040,
-  "first_entry_date": "1990-01-01"
+  "start_year": 2023,
+  "end_year": 2040,
+  "first_entry_date": "29-03-2023"
 }
