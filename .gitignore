@@ -1,11 +1,4 @@
-# Personal data directories - DO NOT COMMIT
-data/
-docs/
-travel_pdfs/
 
-# Keep template files for documentation  
-!data/*.template
-!data/README.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "visa_1",
+    "label": "Skilled Worker 1",
+    "start_date": "01-01-1990",
+    "end_date": "14-09-2038",
+    "gross_salary": "£40000.00"
+  },
+  {
+    "id": "visa_2",
+    "label": "Skilled Worker 2",
+    "start_date": "01-01-2038",
+    "end_date": "30-09-2040",
+    "gross_salary": "£50000.00"
+  }
+]
