@@ -19,6 +19,7 @@ from pathlib import Path               # Modern path handling (better than os.pa
 # Local module imports - our own code files
 from config import AppConfig           # Configuration management class
 from storage.json_loader import DataLoader  # JSON data loading utilities
+from ui.calendar_view import CalendarView    # Calendar display widget
 
 class CalendarApp:
     """
@@ -46,6 +47,7 @@ class CalendarApp:
         self.data_loader = None            # Will hold data loading object
         self.trips = []                    # Initialize as empty list (prevent AttributeError)
         self.visa_periods = []             # Initialize as empty list (prevent AttributeError)
+        self.calendar_view = None          # Will hold calendar widget
         
         # Call initialization methods in sequence
         # (Python allows calling methods from constructor, unlike some C conventions)
@@ -83,6 +85,11 @@ class CalendarApp:
         
         # Set window position: +x+y offset from top-left corner
         self.root.geometry(f"+{x}+{y}")    # f-strings are like sprintf() in C
+        
+        # Set minimum window size to prevent calendar distortion
+        # Calendar needs minimum space: 7 columns * 90px + navigation + padding ≈ 750px width
+        # Header + day headers + 6 weeks + padding ≈ 600px height
+        self.root.minsize(750, 600)
         
     def load_data(self):
         """
@@ -158,7 +165,7 @@ class CalendarApp:
             text="UK ILR Calendar App",    # displayed text
             font=("Arial", 18, "bold")     # font tuple: (family, size, style)
         )
-        
+
         # Position with padding: (top, right, bottom, left) - like CSS
         title_label.pack(pady=(0, 20))    # 0 pixels top, 20 pixels bottom
         
@@ -210,15 +217,26 @@ class CalendarApp:
         )
         status_label.pack()
         
-        # Placeholder for future calendar widget
-        # This will be replaced with actual calendar in next development phase
-        calendar_placeholder = tk.Label(
-            main_frame,
-            text="[Calendar view will be implemented next]",
-            font=("Arial", 10),
-            fg="gray"                      # gray color for placeholder text
-        )
-        calendar_placeholder.pack(pady=(40, 0))  # 40px top padding
+        # Calendar view widget - shows month grid with navigation
+        # This is the main calendar display component
+        self.calendar_view = CalendarView(main_frame, config=self.config)
+        
+        # Set up day click callback for future trip detail display
+        self.calendar_view.set_day_click_callback(self.day_clicked)
+        
+    def day_clicked(self, clicked_date):
+        """
+        Handle when user clicks on a calendar day.
+        
+        Args:
+            clicked_date: The date that was clicked
+        """
+        # For now, just show basic information
+        # Later this will show trip details, visa periods, etc.
+        date_str = clicked_date.strftime('%A, %d %B %Y')
+        print(f"Calendar day clicked: {date_str}")
+        
+        # TODO: In next phase, show day details popup with trip information
         
     def run(self):
         """

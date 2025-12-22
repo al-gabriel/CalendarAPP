@@ -21,7 +21,7 @@
   - **Test:** App starts, loads your real JSON files, shows basic info
 
 ### Afternoon Session (2-3 hours)
-- [ ] **Basic Month Calendar**
+- [X] **Basic Month Calendar**
   - `ui/calendar_view.py` - month grid using tkinter
   - Show current month (December 2025)
   - Basic date navigation (Previous/Next month buttons)
