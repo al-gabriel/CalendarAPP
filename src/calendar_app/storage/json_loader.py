@@ -144,23 +144,22 @@ class DataLoader:
         
         Returns:
             List of validated trip dictionaries
+            
+        Raises:
+            ValueError: If any trip data is invalid
         """
-        try:
-            trips_data = self.load_json_file("trips.json")
-            validated_trips = []
-            
-            for i, trip in enumerate(trips_data):
-                try:
-                    validated_trip = self.validate_trip(trip)
-                    validated_trips.append(validated_trip)
-                except ValueError as e:
-                    print(f"Warning: Skipping invalid trip at index {i}: {e}")
-                    
-            return validated_trips
-            
-        except Exception as e:
-            print(f"Error loading trips: {e}")
-            return []
+        trips_data = self.load_json_file("trips.json")
+        validated_trips = []
+        
+        for i, trip in enumerate(trips_data):
+            try:
+                validated_trip = self.validate_trip(trip)
+                validated_trips.append(validated_trip)
+            except ValueError as e:
+                # Raise exception instead of just warning - this will trigger the error popup
+                raise ValueError(f"Invalid trip at index {i}: {e}")
+                
+        return validated_trips
             
     def load_visa_periods(self) -> List[Dict[str, Any]]:
         """
@@ -168,23 +167,22 @@ class DataLoader:
         
         Returns:
             List of validated visa period dictionaries
+            
+        Raises:
+            ValueError: If any visa period data is invalid
         """
-        try:
-            visa_data = self.load_json_file("visa_periods.json")
-            validated_visas = []
-            
-            for i, visa in enumerate(visa_data):
-                try:
-                    validated_visa = self.validate_visa_period(visa)
-                    validated_visas.append(validated_visa)
-                except ValueError as e:
-                    print(f"Warning: Skipping invalid visa period at index {i}: {e}")
-                    
-            return validated_visas
-            
-        except Exception as e:
-            print(f"Error loading visa periods: {e}")
-            return []
+        visa_data = self.load_json_file("visa_periods.json")
+        validated_visas = []
+        
+        for i, visa in enumerate(visa_data):
+            try:
+                validated_visa = self.validate_visa_period(visa)
+                validated_visas.append(validated_visa)
+            except ValueError as e:
+                # Raise exception instead of just warning - this will trigger the error popup
+                raise ValueError(f"Invalid visa period at index {i}: {e}")
+                
+        return validated_visas
             
     def load_all_data(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
@@ -214,8 +212,11 @@ class DataLoader:
         
         total_trip_days = sum(trip.get("trip_length_days", 0) for trip in trips)
         
-        return f"""Data Summary:
-• {len(trips)} trips total ({short_trips} short, {long_trips} long)
-• {total_trip_days} total trip days
-• {len(visa_periods)} visa periods
-• Date range: {min(trip['departure_date'] for trip in trips) if trips else 'N/A'} to {max(trip['return_date'] for trip in trips) if trips else 'N/A'}"""
+        # Build summary text using f-string formatting (same pattern as main.py)
+        summary_text = f"""Data Summary:"""
+        summary_text += f"\n• {len(trips)} trips total ({short_trips} short, {long_trips} long)"
+        summary_text += f"\n• {total_trip_days} total trip days"
+        summary_text += f"\n• {len(visa_periods)} visa periods"
+        summary_text += f"\n• Date range: {min(trip['departure_date'] for trip in trips) if trips else 'N/A'} to {max(trip['return_date'] for trip in trips) if trips else 'N/A'}"
+        
+        return summary_text

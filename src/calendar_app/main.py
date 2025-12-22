@@ -127,12 +127,15 @@ class CalendarApp:
             
             print(f"✗ {error_msg}")
             
-            # Show error dialog to user (like MessageBox in Win32)
-            messagebox.showerror("Data Loading Error", error_msg)
+            # Ensure root window is ready before showing popup
+            self.root.update_idletasks()
             
-            # Set empty lists as fallback (like initializing arrays to empty)
-            self.trips = []
-            self.visa_periods = []
+            # Show error dialog to user (like MessageBox in Win32)
+            # Make sure the dialog appears on top and gets focus
+            messagebox.showerror("Data Loading Error", error_msg, parent=self.root)
+            
+            # Re-raise the exception to propagate it up to main() for centralized handling
+            raise
             
     def create_widgets(self):
         """
@@ -155,6 +158,7 @@ class CalendarApp:
             text="UK ILR Calendar App",    # displayed text
             font=("Arial", 18, "bold")     # font tuple: (family, size, style)
         )
+        
         # Position with padding: (top, right, bottom, left) - like CSS
         title_label.pack(pady=(0, 20))    # 0 pixels top, 20 pixels bottom
         
@@ -235,6 +239,8 @@ def main():
     
     Python convention is to have a main() function that starts everything
     """
+    app = None  # Initialize app variable for cleanup
+    
     try:
         # Create application instance and run it
         app = CalendarApp()           # calls CalendarApp.__init__()
@@ -244,12 +250,21 @@ def main():
         # Handle Ctrl+C gracefully (like signal handling in C)
         print("\\nApplication terminated by user")
         
-    except Exception as e:
-        # Catch any other unexpected errors
-        print(f"Application error: {e}")
-        
-        # Show error dialog if possible
-        messagebox.showerror("Application Error", f"Failed to start application:\\n{e}")
+    except Exception:        
+        # If we don't have an app instance yet, show a basic error
+        pass
+    
+    finally:
+        # Centralized cleanup - finally block (not method) handles shutdown
+        if app and hasattr(app, 'root') and app.root:
+            print("Application shutting down...")
+            try:
+                app.root.quit()      # Stop the main loop
+                app.root.destroy()   # Destroy the window
+            except:
+                pass  # Ignore cleanup errors
+                
+        print("Goodbye!")
 
 # Python equivalent of #ifdef MAIN in C
 # Only run main() if this file is executed directly (not imported as module)

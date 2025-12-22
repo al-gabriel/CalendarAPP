@@ -11,10 +11,10 @@ REM Change to the application directory
 REM %~dp0 = directory where this batch file is located
 cd /d "%~dp0\src\calendar_app"
 
-REM Check if Python is available
-python --version >nul 2>&1
+REM Check if Python launcher is available
+py --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python is not installed or not in PATH
+    echo ERROR: Python is not installed or Python launcher not available
     echo Please install Python 3.x and try again
     pause
     exit /b 1
@@ -22,11 +22,12 @@ if errorlevel 1 (
 
 REM Print startup message
 echo Starting UK ILR Calendar App...
+echo Using Python launcher (py.exe)...
 echo.
 
 REM Run the Python application
-REM python.exe calls the Python interpreter with our main.py file
-python main.py
+REM py.exe is the Python launcher - more reliable than python.exe on Windows
+py main.py
 
 REM If we get here, the app has closed
 echo.

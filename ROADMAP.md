@@ -9,12 +9,12 @@
 **Goal:** Working calendar app that loads real data
 
 ### Morning Session (2-3 hours)
-- [ ] **Project Structure Setup**
+- [X] **Project Structure Setup**
   - Create all Python files in `src/calendar_app/`
   - `main.py`, `config.py`, basic module structure
   - Basic tkinter window with title
 
-- [ ] **JSON Loading System**
+- [X] **JSON Loading System**
   - Implement `config.py` - load and validate `config.json`
   - Implement `storage/json_loader.py` for trips and visa periods
   - Error handling for invalid JSON files
@@ -123,7 +123,7 @@
 
 ## ✅ **Success Criteria**
 By end of Day 3, the app must:
-- [ ] Load and display your real ILR data accurately
+- [X] Load and display your real ILR data accurately
 - [ ] Show visually distinct day classifications
 - [ ] Calculate correct ILR progress statistics
 - [ ] Provide both month and year calendar views
