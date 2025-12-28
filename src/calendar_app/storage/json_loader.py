@@ -5,10 +5,10 @@ Handles loading and validation of trips.json and visa_periods.json files.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
-from ..config import AppConfig
+from calendar_app.config import AppConfig
 
 class DataLoader:
     """Loads and validates JSON data files."""
@@ -59,13 +59,13 @@ class DataLoader:
         except Exception as e:
             raise RuntimeError(f"Failed to load {filename}: {e}")
             
-    def validate_trip(self, trip: Dict[str, Any], first_entry_date: str) -> Dict[str, Any]:
+    def validate_trip(self, trip: Dict[str, Any], first_entry_date: date) -> Dict[str, Any]:
         """
         Validate a single trip record.
         
         Args:
             trip: Trip dictionary to validate
-            first_entry_date: First UK entry date for validation (required)
+            first_entry_date: First UK entry date for validation (as date object)
             
         Returns:
             Validated trip dictionary with parsed dates
@@ -140,6 +140,24 @@ class DataLoader:
         # Validate date logic
         if end_date < start_date:
             raise ValueError(f"Visa period {visa['id']}: end_date must be >= start_date")
+            
+        # BUSINESS RULE: Visa periods must be within the defined timeline range
+        timeline_start_date = datetime(self.config.start_year, 1, 1).date()
+        timeline_end_date = datetime(self.config.end_year, 12, 31).date()
+        
+        if start_date < timeline_start_date:
+            raise ValueError(
+                f"Visa period {visa['id']}: start_date ({start_date.strftime('%d-%m-%Y')}) "
+                f"is before timeline start date ({timeline_start_date.strftime('%d-%m-%Y')}). "
+                f"Visa periods must be within the defined timeline range."
+            )
+            
+        if end_date > timeline_end_date:
+            raise ValueError(
+                f"Visa period {visa['id']}: end_date ({end_date.strftime('%d-%m-%Y')}) "
+                f"is beyond timeline end date ({timeline_end_date.strftime('%d-%m-%Y')}). "
+                f"Visa periods must be within the defined timeline range."
+            )
             
         # Create validated visa period with parsed dates
         validated_visa = visa.copy()

@@ -301,6 +301,9 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 - **AR-3.3: Data Integrity Enforcement**
   - JSON loading must require valid configuration for validation context
   - Trip validation must prevent trips occurring before `first_entry_date`
+  - Visa period validation must enforce timeline range boundaries:
+    - No visa periods starting before `start_year` (Jan 1)
+    - No visa periods extending beyond `end_year` (Dec 31)
   - All date parsing must be consistent and validated
 
 ### AR-4: Factory Pattern and Object Creation
