@@ -1,115 +1,15 @@
 """
-Date Timeline Foundation for Calendar App
-Generates and manages configurable day-by-day timeline for ILR tracking.
+Date Timeline Management for Calendar App
+Contains DateTimeline class for managing configurable day-by-day timeline for ILR tracking.
 """
 
 from datetime import date, timedelta
-from enum import Enum
 from typing import Dict, List, Optional
 
-# Import config module from parent directory
 from calendar_app.config import AppConfig
-
-
-class DayClassification(Enum):
-    """Classification types for each day in the timeline."""
-    UK_RESIDENCE = "uk_residence"  # Normal UK residence day
-    SHORT_TRIP = "short_trip"      # Day during short trip (<14 days) - counts toward ILR total
-    LONG_TRIP = "long_trip"        # Day during long trip (>=14 days) - does not count toward ILR
-    PRE_ENTRY = "pre_entry"        # Before first UK entry date
-    UNKNOWN = "unknown"            # Classification not yet determined
-
-
-class Day:
-    """Represents a single day in the timeline with its classification."""
-    
-    def __init__(self, date_obj: date):
-        self.date = date_obj
-        self.classification = DayClassification.UNKNOWN
-        self.trip_info: Optional[Dict] = None  # Will store trip details later
-        self.visa_period: Optional[str] = None  # Will store visa period info later
-    
-    @property
-    def year(self) -> int:
-        return self.date.year
-    
-    @property
-    def month(self) -> int:
-        return self.date.month
-    
-    @property
-    def day(self) -> int:
-        return self.date.day
-    
-    @property
-    def weekday(self) -> int:
-        """Returns weekday (0=Monday, 6=Sunday)"""
-        return self.date.weekday()
-    
-    @property
-    def is_weekend(self) -> bool:
-        """Returns True if day is Saturday or Sunday"""
-        return self.weekday >= 5
-    
-    def counts_as_ilr_in_uk_day(self, first_entry_date: date) -> bool:
-        """
-        Check if this day counts as an ILR in-UK day.
-        
-        Args:
-            first_entry_date: Date when ILR counting began
-            
-        Returns:
-            True if day counts as ILR in-UK day (pure UK residence, no trips)
-        """
-        return (self.date >= first_entry_date and 
-                self.classification == DayClassification.UK_RESIDENCE)
-    
-    def counts_as_short_trip_day(self, first_entry_date: date) -> bool:
-        """
-        Check if this day counts as a short trip day for ILR total.
-        
-        Args:
-            first_entry_date: Date when ILR counting began
-            
-        Returns:
-            True if day is part of short trip (<14 days) and counts toward ILR total
-        """
-        return (self.date >= first_entry_date and 
-                self.classification == DayClassification.SHORT_TRIP)
-    
-    def counts_as_ilr_total_day(self, first_entry_date: date) -> bool:
-        """
-        Check if this day counts toward ILR total days.
-        
-        ILR total = ILR in-UK days + short trip days
-        
-        Args:
-            first_entry_date: Date when ILR counting began
-            
-        Returns:
-            True if day counts toward ILR total
-        """
-        return (self.counts_as_ilr_in_uk_day(first_entry_date) or 
-                self.counts_as_short_trip_day(first_entry_date))
-    
-    def counts_as_long_trip_day(self, first_entry_date: date) -> bool:
-        """
-        Check if this day is a long trip day (>=14 days, does not count toward ILR).
-        
-        Args:
-            first_entry_date: Date when ILR counting began
-            
-        Returns:
-            True if day is part of long trip (tracked but not counted toward ILR)
-        """
-        return (self.date >= first_entry_date and 
-                self.classification == DayClassification.LONG_TRIP)
-    
-    def __str__(self) -> str:
-        return f"Day({self.date.strftime('%d-%m-%Y')}, {self.classification.value})"
-    
-    def __repr__(self) -> str:
-        return self.__str__()
+from calendar_app.model.day import Day, DayClassification
+from calendar_app.model.trips import TripClassifier
+from calendar_app.model.visaPeriods import VisaClassifier
 
 
 class DateTimeline:
@@ -117,12 +17,14 @@ class DateTimeline:
     
     _instance: Optional['DateTimeline'] = None  # Class-level singleton instance
     
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, trip_classifier: 'TripClassifier', visaPeriod_classifier: 'VisaClassifier'):
         """
         Initialize timeline from AppConfig (private - use from_config class method).
         
         Args:
             config: AppConfig instance with start_year and end_year
+            trip_classifier: TripClassifier for real trip data integration (required)
+            visaPeriod_classifier: VisaClassifier for visa period data integration (required)
             
         Raises:
             AttributeError: If config missing required attributes
@@ -136,16 +38,20 @@ class DateTimeline:
         self.start_year = config.start_year
         self.end_year = config.end_year
         self.config = config
+        self.trip_classifier = trip_classifier
+        self.visaPeriod_classifier = visaPeriod_classifier
         self.days: Dict[date, Day] = {}
         self._generate_timeline()
     
     @classmethod
-    def from_config(cls, config: AppConfig, use_singleton: bool = True) -> 'DateTimeline':
+    def from_config(cls, config: AppConfig, trip_classifier: 'TripClassifier', visaPeriod_classifier: 'VisaClassifier', use_singleton: bool = True) -> 'DateTimeline':
         """
-        Create DateTimeline from AppConfig.
+        Create DateTimeline from AppConfig with trip and visa integration.
         
         Args:
             config: AppConfig instance with validated start_year and end_year
+            trip_classifier: TripClassifier for real trip data integration (required)
+            visaPeriod_classifier: VisaClassifier for visa period data integration (required)
             use_singleton: If True, reuse existing instance with matching config
             
         Returns:
@@ -165,7 +71,7 @@ class DateTimeline:
                 )
             return cls._instance
         
-        instance = cls(config)
+        instance = cls(config, trip_classifier, visaPeriod_classifier)
         if use_singleton:
             cls._instance = instance
         return instance
@@ -175,14 +81,52 @@ class DateTimeline:
         """Reset the singleton instance (useful for testing)."""
         cls._instance = None
     
+    def _classify_day_from_trip_data(self, current_date: date, trip_classifier: 'TripClassifier') -> DayClassification:
+        """
+        Classify a day based on trip data from TripClassifier.
+        
+        Args:
+            current_date: Date to classify
+            trip_classifier: TripClassifier instance
+            
+        Returns:
+            DayClassification for the date
+        """
+        # Handle pre-entry days
+        if current_date < self.config.first_entry_date_obj:
+            return DayClassification.PRE_ENTRY
+        
+        # Check if day is part of any trip
+        if trip_classifier.is_short_trip_day(current_date):
+            return DayClassification.SHORT_TRIP
+        elif trip_classifier.is_long_trip_day(current_date):
+            return DayClassification.LONG_TRIP
+        else:
+            # Not part of any trip = UK residence day
+            return DayClassification.UK_RESIDENCE
+
     def _generate_timeline(self) -> None:
-        """Generate all days based on configured date range."""
+        """Generate all days based on configured date range and classify them."""
         start_date = date(self.start_year, 1, 1)
         end_date = date(self.end_year, 12, 31)
         
         current_date = start_date
         while current_date <= end_date:
             day_obj = Day(current_date)
+            
+            # Set day classification using trip data (trip_classifier is always present)
+            day_obj.classification = self._classify_day_from_trip_data(current_date, self.trip_classifier)
+            
+            # Store trip information if this is a trip day
+            trip_summary = self.trip_classifier.get_trip_summary(current_date)
+            if trip_summary['is_trip_day']:
+                day_obj.trip_info = trip_summary
+            
+            # Store visa period information if this day has visa period coverage
+            visaPeriod_summary = self.visaPeriod_classifier.get_visaPeriod_summary(current_date)
+            if visaPeriod_summary['has_visaPeriod']:
+                day_obj.visaPeriod_info = visaPeriod_summary
+            
             self.days[current_date] = day_obj
             current_date += timedelta(days=1)
     
@@ -246,15 +190,15 @@ class DateTimeline:
     
     def update_day_classification(self, date_obj: date, classification: DayClassification,
                                 trip_info: Optional[Dict] = None, 
-                                visa_period: Optional[str] = None) -> bool:
+                                visaPeriod: Optional[str] = None) -> bool:
         """Update classification and info for a specific day."""
         day_obj = self.get_day(date_obj)
         if day_obj:
             day_obj.classification = classification
             if trip_info:
                 day_obj.trip_info = trip_info
-            if visa_period:
-                day_obj.visa_period = visa_period
+            if visaPeriod:
+                day_obj.visaPeriod = visaPeriod
             return True
         return False
     
@@ -393,7 +337,7 @@ class DateTimeline:
     def update_date_range_classification(self, start_date: date, end_date: date, 
                                        classification: DayClassification,
                                        trip_info: Optional[Dict] = None,
-                                       visa_period: Optional[str] = None) -> int:
+                                       visaPeriod: Optional[str] = None) -> int:
         """
         Update classification for a range of dates (inclusive).
         Useful for applying trip classifications to entire trip periods.
@@ -405,7 +349,7 @@ class DateTimeline:
         current_date = start_date
         
         while current_date <= end_date:
-            if self.update_day_classification(current_date, classification, trip_info, visa_period):
+            if self.update_day_classification(current_date, classification, trip_info, visaPeriod):
                 updated_count += 1
             current_date += timedelta(days=1)
             
@@ -575,5 +519,3 @@ class DateTimeline:
             }
         
         return result
-
-

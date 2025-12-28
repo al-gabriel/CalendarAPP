@@ -1,7 +1,7 @@
 """
 JSON data loading utilities.
 
-Handles loading and validation of trips.json and visa_periods.json files.
+Handles loading and validation of trips.json and visaPeriods.json files.
 """
 
 import json
@@ -110,7 +110,7 @@ class DataLoader:
         
         return validated_trip
         
-    def validate_visa_period(self, visa: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_visaPeriod(self, visa: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate a single visa period record.
         
@@ -193,9 +193,9 @@ class DataLoader:
                 
         return validated_trips
             
-    def load_visa_periods(self) -> List[Dict[str, Any]]:
+    def load_visaPeriods(self) -> List[Dict[str, Any]]:
         """
-        Load and validate all visa periods from visa_periods.json.
+        Load and validate all visa periods from visaPeriods.json.
         
         Returns:
             List of validated visa period dictionaries
@@ -203,12 +203,12 @@ class DataLoader:
         Raises:
             ValueError: If any visa period data is invalid
         """
-        visa_data = self.load_json_file("visa_periods.json")
+        visaPeriods_data = self.load_json_file("visaPeriods.json")
         validated_visas = []
         
-        for i, visa in enumerate(visa_data):
+        for i, visa in enumerate(visaPeriods_data):
             try:
-                validated_visa = self.validate_visa_period(visa)
+                validated_visa = self.validate_visaPeriod(visa)
                 validated_visas.append(validated_visa)
             except ValueError as e:
                 # Raise exception instead of just warning - this will trigger the error popup
@@ -221,20 +221,20 @@ class DataLoader:
         Load all data files.
         
         Returns:
-            Tuple of (trips, visa_periods)
+            Tuple of (trips, visaPeriods)
         """
         trips = self.load_trips()
-        visa_periods = self.load_visa_periods()
+        visaPeriods = self.load_visaPeriods()
         
-        return trips, visa_periods
+        return trips, visaPeriods
         
-    def get_data_summary(self, trips: List[Dict[str, Any]], visa_periods: List[Dict[str, Any]]) -> str:
+    def get_data_summary(self, trips: List[Dict[str, Any]], visaPeriods: List[Dict[str, Any]]) -> str:
         """
-        Get a summary of loaded data.
+        Generate a summary string of loaded data.
         
         Args:
             trips: List of trip dictionaries
-            visa_periods: List of visa period dictionaries
+            visaPeriods: List of visa period dictionaries
             
         Returns:
             Human-readable summary string
@@ -248,7 +248,7 @@ class DataLoader:
         summary_text = f"""Data Summary:"""
         summary_text += f"\n• {len(trips)} trips total ({short_trips} short, {long_trips} long)"
         summary_text += f"\n• {total_trip_days} total trip days"
-        summary_text += f"\n• {len(visa_periods)} visa periods"
+        summary_text += f"\n• {len(visaPeriods)} visa periods"
         summary_text += f"\n• Date range: {min(trip['departure_date'] for trip in trips) if trips else 'N/A'} to {max(trip['return_date'] for trip in trips) if trips else 'N/A'}"
         
         return summary_text

@@ -20,6 +20,9 @@ from pathlib import Path               # Modern path handling (better than os.pa
 from calendar_app.config import AppConfig           # Configuration management class
 from calendar_app.storage.json_loader import DataLoader  # JSON data loading utilities
 from calendar_app.ui.calendar_view import CalendarView    # Calendar display widget
+from calendar_app.model.timeline import DateTimeline          # Date timeline with ILR logic
+from calendar_app.model.trips import TripClassifier        # Trip classification system
+from calendar_app.model.visaPeriods import VisaClassifier  # Visa period classification system
 
 class CalendarApp:
     """
@@ -46,7 +49,7 @@ class CalendarApp:
         self.config = None                 # Will hold configuration data
         self.data_loader = None            # Will hold data loading object
         self.trips = []                    # Initialize as empty list (prevent AttributeError)
-        self.visa_periods = []             # Initialize as empty list (prevent AttributeError)
+        self.visaPeriods = []             # Initialize as empty list (prevent AttributeError)
         self.calendar_view = None          # Will hold calendar widget
         
         # Call initialization methods in sequence
@@ -115,17 +118,29 @@ class CalendarApp:
             # Create data loader object with config for validation
             self.data_loader = DataLoader(project_root, self.config)
             
-            # Load data files - this returns a tuple (trips, visa_periods)
+            # Load data files - this returns a tuple (trips, visaPeriods)
             # Python functions can return multiple values (unlike C)
-            trips, visa_periods = self.data_loader.load_all_data()
+            trips, visaPeriods = self.data_loader.load_all_data()
             
             print(f"✓ Data loaded successfully")
             print(f"  - {len(trips)} trips loaded")        # len() gets array/list size
-            print(f"  - {len(visa_periods)} visa periods loaded")
+            print(f"  - {len(visaPeriods)} visa periods loaded")
             
             # Store data as instance variables for later use
             self.trips = trips
-            self.visa_periods = visa_periods
+            self.visaPeriods = visaPeriods
+            
+            # Create trip classifier for day-by-day classifications
+            self.trip_classifier = TripClassifier(self.config, trips)
+            
+            # Create visa classifier for visa period mapping
+            self.visaPeriod_classifier = VisaClassifier(self.config, visaPeriods)
+            
+            # Create date timeline with trip and visa integration
+            self.timeline = DateTimeline.from_config(self.config, self.trip_classifier, self.visaPeriod_classifier)
+            
+            print(f"✓ Timeline initialized with {self.timeline.get_total_days()} days")
+            print(f"  - Date range: {self.config.start_year}-{self.config.end_year}")
             
         except Exception as e:
             # Exception handling - 'e' contains the error object
@@ -177,7 +192,7 @@ class CalendarApp:
         # This is like building a string with sprintf() in C
         summary_text = f"""Data Summary:"""
         summary_text += f"\n• {len(self.trips)} trips loaded"
-        summary_text += f"\n• {len(self.visa_periods)} visa periods loaded"
+        summary_text += f"\n• {len(self.visaPeriods)} visa periods loaded"
         
         # Add configuration info if available
         if self.config:                    # Check if config loaded successfully (not None)

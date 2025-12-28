@@ -43,9 +43,9 @@ S  - Full classification integration with counting and querying methods
 **Goal:** Visually meaningful calendar with ILR progress tracking
 
 ### Morning Session (2-3 hours)
-- [ ] **Trip Classification System**
+- [X] **Trip Classification System**
   - `model/trips.py` - short vs long trip logic
-  - `model/visa_periods.py` - visa period matching
+  - `model/visaPeriods.py` - visa period matching
   - Assign each day its proper classification (UK/short trip/long trip)
   - **Test:** Verify trip classifications match your data
 
