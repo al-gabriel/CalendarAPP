@@ -31,7 +31,7 @@ Fields:
 
 ---
 
-## visa_periods.json
+## visaPeriods.json
 
 List of your visa periods.
 

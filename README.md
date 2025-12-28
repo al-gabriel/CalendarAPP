@@ -42,7 +42,7 @@ The app is **read‑only** in v1: all data is stored and edited in JSON by the u
 
 ### Data files documentation
 
-All JSON files used by the app live in the `data/` folder (`config.json`, `visa_periods.json`, `trips.json`).  
+All JSON files used by the app live in the `data/` folder (`config.json`, `visaPeriods.json`, `trips.json`).  
 
 For a quick description of every field and how to edit them by hand, see:
 

@@ -1,6 +1,18 @@
 """
+DEPRECATED: This file has been split into modular components.
+
 Comprehensive Test Suite for dates.py
 Tests all functionality of Day and DateTimeline classes with hardcoded values.
+
+This file has been refactored into:
+- tests_day.py: Contains Day class and DayClassification enum
+- tests_timeline.py: Contains DateTimeline class
+
+Please update your imports:
+- from calendar_app.model.day import Day, DayClassification
+- from calendar_app.model.timeline import DateTimeline
+
+This file will be removed in a future version.
 """
 
 import sys

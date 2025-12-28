@@ -110,7 +110,7 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 
 ### FR‑4: Visa period management
 
-- Visa periods are stored in `visa_periods.json` with:
+- Visa periods are stored in `visaPeriods.json` with:
   - `id`
   - `label`
   - `start_date`
@@ -185,7 +185,7 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 
 - All persistent data must be stored in JSON files:
   - `config.json` - single object with configuration key-value pairs
-  - `visa_periods.json` - array of visa period objects
+  - `visaPeriods.json` - array of visa period objects
   - `trips.json` - array of trip objects
 - JSON must be human‑readable and hand‑editable (simple structures, no complex nesting).
 - Date formats are defined in **[Key Definitions](#15-key-definitions)**.
@@ -309,31 +309,73 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 ### AR-4: Factory Pattern and Object Creation
 
 - **AR-4.1: Configuration-Only Creation**
-  - `DateTimeline` must only be created through `DateTimeline.from_config(config)`
+  - `DateTimeline` must only be created through `DateTimeline.from_config(config, trip_classifier)`
   - Direct constructor calls must be private/discouraged to enforce validation
   - All business objects must derive their parameters from validated configuration
+  - TripClassifier is required parameter (not Optional) to enforce proper error handling
 
 - **AR-4.2: Singleton Pattern (Optional)**
   - `DateTimeline` may implement optional singleton behavior for memory efficiency
   - Singleton must validate configuration consistency across requests
   - Must provide mechanism to reset singleton for testing (`reset_singleton()`)
 
+- **AR-4.3: Initialization-Time Data Building**
+  - All data structures must be built during object initialization (constructor)
+  - No lazy-loading patterns - all expensive operations happen at creation time
+  - Methods should only access pre-built data structures for predictable performance
+  - Fail-fast principle: errors caught immediately during object creation
+  - Supports refresh functionality: objects can be recreated to reload data
+
+- **AR-4.4: Data Refresh Architecture**
+  - Application must support refresh functionality to reload JSON data changes
+  - Refresh must recreate all data-dependent objects (TripClassifier, DateTimeline)
+  - Refresh must maintain UI state where possible (current month view, etc.)
+  - All data objects must be designed for recreation without side effects
+
+- **AR-4.5: Required Parameters Policy**
+  - Constructor parameters must not use Optional where the parameter is essential for operation
+  - Required business objects (TripClassifier, AppConfig) must be mandatory parameters
+  - Optional parameters only allowed for genuinely optional features (UI defaults, debugging flags)
+  - Maximizes error detection at initialization time rather than runtime
+
 ### AR-5: Code Organization and Modularity
 
-- **AR-5.1: Test Code Separation**
-  - Test code must be in separate files (e.g., `test_dates.py`)
+- **AR-5.1: Modular Architecture**
+  - Core model classes separated into focused modules:
+    - `day.py`: Day class and DayClassification enum
+    - `timeline.py`: DateTimeline class for day-by-day timeline management
+    - `trips.py`: TripClassifier for trip-based logic
+  - Each module has single responsibility principle
+  - Clear separation of concerns between trip classification and day classification
+
+- **AR-5.2: Test Code Separation**
+  - Test code must be in separate files matching module structure:
+    - `test_day.py`: Tests for Day class and DayClassification
+    - `test_timeline.py`: Tests for DateTimeline functionality
+    - `test_trips.py`: Tests for TripClassifier functionality
   - Production modules must not contain test functions or main blocks for testing
   - Debug functionality must be controlled by explicit debug flags, not mixed with production code
 
-- **AR-5.2: No Duplicate Functionality**
+- **AR-5.3: No Duplicate Functionality**
   - Avoid convenience functions that simply wrap class methods without added value
   - Maintain single source of truth for business logic
   - Class-based APIs preferred over parallel functional APIs
+  - TripClassifier focuses on trip-related functionality only
+  - DateTimeline handles day classification using trip data
 
-- **AR-5.3: Import Structure**
-  - Relative imports within package: `from ..config import AppConfig`
-  - Clear module hierarchy: model layer imports from config layer
-  - No circular dependencies between modules
+### AR-6: Error Handling and Validation
+
+- **AR-6.1: Constructor Parameter Validation**
+  - No Optional parameters for essential business objects in constructors
+  - Required dependencies (AppConfig, TripClassifier) must be mandatory parameters
+  - Early validation and fail-fast behavior at object creation time
+  - Clear error messages for missing or invalid required parameters
+
+- **AR-6.2: Data Validation**
+  - JSON data must be validated before object creation
+  - Business rule violations must raise appropriate exceptions
+  - Configuration consistency must be enforced across all components
+  - Type validation and range checking for all user-provided data
 
 ### AR-6: Data Consistency and Calculation Accuracy
 
