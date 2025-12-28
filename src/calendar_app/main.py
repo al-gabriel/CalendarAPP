@@ -112,8 +112,8 @@ class CalendarApp:
             print(f"  - Objective years: {self.config.objective_years}")
             print(f"  - First entry date: {self.config.first_entry_date}")
             
-            # Create data loader object
-            self.data_loader = DataLoader(project_root)
+            # Create data loader object with config for validation
+            self.data_loader = DataLoader(project_root, self.config)
             
             # Load data files - this returns a tuple (trips, visa_periods)
             # Python functions can return multiple values (unlike C)

@@ -7,20 +7,23 @@ Handles loading and validation of trips.json and visa_periods.json files.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
+from ..config import AppConfig
 
 class DataLoader:
     """Loads and validates JSON data files."""
     
-    def __init__(self, project_root: Path):
+    def __init__(self, project_root: Path, config: AppConfig):
         """
         Initialize data loader.
         
         Args:
             project_root: Path to the project root directory
+            config: Application configuration (required for validation)
         """
         self.project_root = project_root
         self.data_path = project_root / "data"
+        self.config = config
         
     def load_json_file(self, filename: str) -> List[Dict[str, Any]]:
         """
@@ -56,12 +59,13 @@ class DataLoader:
         except Exception as e:
             raise RuntimeError(f"Failed to load {filename}: {e}")
             
-    def validate_trip(self, trip: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_trip(self, trip: Dict[str, Any], first_entry_date: str) -> Dict[str, Any]:
         """
         Validate a single trip record.
         
         Args:
             trip: Trip dictionary to validate
+            first_entry_date: First UK entry date for validation (required)
             
         Returns:
             Validated trip dictionary with parsed dates
@@ -86,6 +90,13 @@ class DataLoader:
         # Validate date logic
         if return_date < departure_date:
             raise ValueError(f"Trip {trip['id']}: return_date must be >= departure_date")
+                # CRITICAL VALIDATION: No trips before first UK entry  
+        if departure_date < first_entry_date:
+            raise ValueError(
+                f"Trip {trip['id']}: departure_date ({departure_date.strftime('%d-%m-%Y')}) "
+                f"is before first UK entry date ({first_entry_date.strftime('%d-%m-%Y')}). "
+                f"Trips cannot exist before first UK entry."
+            )
             
         # Calculate trip length
         trip_length = (return_date - departure_date).days + 1
@@ -151,9 +162,12 @@ class DataLoader:
         trips_data = self.load_json_file("trips.json")
         validated_trips = []
         
+        # Get first_entry_date from config (config is always available)
+        first_entry_date = self.config.first_entry_date
+        
         for i, trip in enumerate(trips_data):
             try:
-                validated_trip = self.validate_trip(trip)
+                validated_trip = self.validate_trip(trip, first_entry_date)
                 validated_trips.append(validated_trip)
             except ValueError as e:
                 # Raise exception instead of just warning - this will trigger the error popup
