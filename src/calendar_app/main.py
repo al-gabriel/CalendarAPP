@@ -19,7 +19,7 @@ from pathlib import Path               # Modern path handling (better than os.pa
 # Local module imports - our own code files
 from calendar_app.config import AppConfig           # Configuration management class
 from calendar_app.storage.json_loader import DataLoader  # JSON data loading utilities
-from calendar_app.ui.calendar_view import CalendarView    # Calendar display widget
+from calendar_app.ui.views.view_manager import ViewManager, ViewType    # New view management system
 from calendar_app.model.timeline import DateTimeline          # Date timeline with ILR logic
 from calendar_app.model.trips import TripClassifier        # Trip classification system
 from calendar_app.model.visaPeriods import VisaClassifier  # Visa period classification system
@@ -50,7 +50,7 @@ class CalendarApp:
         self.data_loader = None            # Will hold data loading object
         self.trips = []                    # Initialize as empty list (prevent AttributeError)
         self.visaPeriods = []             # Initialize as empty list (prevent AttributeError)
-        self.calendar_view = None          # Will hold calendar widget
+        self.view_manager = None           # Will hold view manager for calendar views
         
         # Call initialization methods in sequence
         # (Python allows calling methods from constructor, unlike some C conventions)
@@ -89,10 +89,11 @@ class CalendarApp:
         # Set window position: +x+y offset from top-left corner
         self.root.geometry(f"+{x}+{y}")    # f-strings are like sprintf() in C
         
-        # Set minimum window size to prevent calendar distortion
-        # Calendar needs minimum space: 7 columns * 90px + navigation + padding ≈ 750px width
-        # Header + day headers + 6 weeks + padding ≈ 600px height
-        self.root.minsize(750, 600)
+        # Set minimum window size to accommodate fixed calendar grid
+        # Calendar fixed size: 500px width + navigation/padding ≈ 600px total width  
+        # Calendar fixed size: 400px height + header/summary/padding ≈ 700px total height
+        # Ensure 6-week months display consistently with smaller weekday headers
+        self.root.minsize(600, 700)
         
     def load_data(self):
         """
@@ -232,12 +233,16 @@ class CalendarApp:
         )
         status_label.pack()
         
-        # Calendar view widget - shows month grid with navigation
-        # This is the main calendar display component
-        self.calendar_view = CalendarView(main_frame, config=self.config)
+        # View manager - handles switching between month/year/day/stats views
+        # This provides a clean architecture for future view additions
+        self.view_manager = ViewManager(main_frame, config=self.config, timeline=self.timeline)
         
-        # Set up day click callback for future trip detail display
-        self.calendar_view.set_day_click_callback(self.day_clicked)
+        # Start with month view
+        self.view_manager.show_month_view()
+        
+        # Set up day click callback for current view (will be handled by view manager in future)
+        if hasattr(self.view_manager.current_view, 'set_day_click_callback'):
+            self.view_manager.current_view.set_day_click_callback(self.day_clicked)
         
     def day_clicked(self, clicked_date):
         """
@@ -283,9 +288,23 @@ def main():
         # Handle Ctrl+C gracefully (like signal handling in C)
         print("\\nApplication terminated by user")
         
-    except Exception:        
+    except Exception as e:        
         # If we don't have an app instance yet, show a basic error
-        pass
+        print(f"\\nFATAL ERROR: Application failed to start")
+        print(f"Error details: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Try to show GUI error dialog if possible
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()  # Hide the main window
+            messagebox.showerror("Application Error", f"Application failed to start:\\n\\n{str(e)}")
+            root.destroy()
+        except:
+            pass  # If GUI error dialog fails, we already printed to console
     
     finally:
         # Centralized cleanup - finally block (not method) handles shutdown
