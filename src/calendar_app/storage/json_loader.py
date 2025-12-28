@@ -162,8 +162,8 @@ class DataLoader:
         trips_data = self.load_json_file("trips.json")
         validated_trips = []
         
-        # Get first_entry_date from config (config is always available)
-        first_entry_date = self.config.first_entry_date
+        # Get first_entry_date from config (use the parsed date object)
+        first_entry_date = self.config.first_entry_date_obj
         
         for i, trip in enumerate(trips_data):
             try:

@@ -7,9 +7,9 @@ REM This is a Windows batch file (.bat) - like a shell script in C/Unix
 REM @echo off = don't show commands as they execute (cleaner output)
 REM REM = comment line (like // in C)
 
-REM Change to the application directory
+REM Change to the src directory (parent of calendar_app package)
 REM %~dp0 = directory where this batch file is located
-cd /d "%~dp0\src\calendar_app"
+cd /d "%~dp0\src"
 
 REM Check if Python launcher is available
 py --version >nul 2>&1
@@ -25,9 +25,10 @@ echo Starting UK ILR Calendar App...
 echo Using Python launcher (py.exe)...
 echo.
 
-REM Run the Python application
+REM Run the Python application as a module
 REM py.exe is the Python launcher - more reliable than python.exe on Windows
-py main.py
+REM -m calendar_app.main runs the main.py file as a module within the calendar_app package
+py -m calendar_app.main
 
 REM If we get here, the app has closed
 echo.

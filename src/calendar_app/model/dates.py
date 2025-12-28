@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 # Import config module from parent directory
-from ..config import AppConfig
+from calendar_app.config import AppConfig
 
 
 class DayClassification(Enum):

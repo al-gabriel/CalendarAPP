@@ -17,9 +17,9 @@ import sys                             # Python interpreter interface
 from pathlib import Path               # Modern path handling (better than os.path)
 
 # Local module imports - our own code files
-from config import AppConfig           # Configuration management class
-from storage.json_loader import DataLoader  # JSON data loading utilities
-from ui.calendar_view import CalendarView    # Calendar display widget
+from calendar_app.config import AppConfig           # Configuration management class
+from calendar_app.storage.json_loader import DataLoader  # JSON data loading utilities
+from calendar_app.ui.calendar_view import CalendarView    # Calendar display widget
 
 class CalendarApp:
     """
