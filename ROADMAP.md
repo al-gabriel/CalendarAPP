@@ -49,7 +49,7 @@ S  - Full classification integration with counting and querying methods
   - Assign each day its proper classification (UK/short trip/long trip)
   - **Test:** Verify trip classifications match your data
 
-- [ ] **Visual Day Classification**
+- [X] **Visual Day Classification**
   - Color-code calendar days based on classification:
     - Normal UK days: Light gray/white
     - Short trip days: Light blue
@@ -125,7 +125,7 @@ S  - Full classification integration with counting and querying methods
 ## ✅ **Success Criteria**
 By end of Day 3, the app must:
 - [X] Load and display your real ILR data accurately
-- [ ] Show visually distinct day classifications
+- [X] Show visually distinct day classifications
 - [ ] Calculate correct ILR progress statistics
 - [ ] Provide both month and year calendar views
 - [ ] Support day-click interactions with trip details
