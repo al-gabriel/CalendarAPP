@@ -6,14 +6,39 @@
 - The user wants the app to support up to **objective_years** of qualifying residence, plus up to **processing_buffer_years** to allow for ILR processing time (both configured in **[`config.json`](#2-configuration)**).
 - For the user’s personal tracking rules:
   - Any single trip abroad **shorter than 14 days** is treated as:
-    - Days still **counting** as in‑UK for ILR days.
-    - Days that should also be tracked separately as “short trip days”.
+    - Days spent **abroad** but still **counting** toward ILR total days.
+    - Days that should be tracked separately as "short trip days".
+    - Days that do **not** contribute to pure "ILR in-UK days".
   - Any trip abroad **14 days or longer** is treated as:
-    - Days **not counting** towards ILR days.
+    - Days **not counting** towards any ILR metrics.
     - Days that should be tracked as “long trip days”.
-- The user holds multiple **visa periods**, each with a start and end (expiry) date (e.g. 2023‑01‑10 to 2024‑09‑14, and 2024‑09‑15 to 2027‑09‑30).
+- The user holds multiple **visa periods**, each with a start and end (expiry) date (e.g. 10‑01‑2023 to 14‑09‑2024, and 15‑09‑2024 to 30‑09‑2027).
 - The first visa started on **10 Jan 2023**, but the first **physical entry** into the UK and the start of ILR day counting is **29 Mar 2023**, which must be configurable.
 - The main calendar timeline should cover **1 Jan 2023 to 31 Dec 2040**.
+
+## 1.5. Key Definitions
+
+**Timeline Range:** 01-01-2023 to 31-12-2040 (18 years, fixed for v1)
+
+**Date Formats:**
+- JSON storage: DD-MM-YYYY (e.g., "29-03-2023")
+- User interface: DD-MM-YYYY consistently
+- Internal calculations: Python `datetime.date` objects
+
+**Trip Classifications:**
+- **Short trip:** <14 days duration - days spent abroad but count toward ILR total
+- **Long trip:** ≥14 days duration - days spent abroad, do not count toward any ILR metrics
+
+**ILR Day Metrics:**
+- **ILR in-UK days:** Pure UK residence days (no trips)
+- **Short trip days:** Days on trips <14 days (abroad but count toward ILR)
+- **ILR total days:** Sum of ILR in-UK days + short trip days
+- **Long trip days:** Days on trips ≥14 days (abroad, do not count toward ILR)
+
+**ILR Counting Rules:**
+- Counting starts from `first_entry_date` only (configurable)
+- Days before first entry never count toward any ILR metrics
+- Target calculation uses exact date arithmetic including leap years
 
 ## 2. Configuration
 
@@ -24,32 +49,22 @@ Core configuration is stored in **[`config.json`](#2-configuration)**:
 - `processing_buffer_years`: Integer (e.g. 1) representing extra years allowed for application processing.
 - `start_year`: 2023 (fixed for v1).
 - `end_year`: 2040 (fixed for v1).
-- `first_entry_date`: Date string (e.g. `"2023-03-29"`) specifying when qualifying days start counting.
+- `first_entry_date`: Date string specifying when qualifying days start counting (format defined in **[Key Definitions](#15-key-definitions)**).
 
-The **ILR target days** must be computed as:
+The **ILR target days** calculation and rules are defined in **[Key Definitions](#15-key-definitions)**. The target is computed by adding exactly `objective_years` to `first_entry_date` using proper date arithmetic.
 
-- `ilr_target_days` = exact count of days from `first_entry_date` + (`objective_years` * 365 days)
-- This gives the target completion date by adding exactly N years to the first entry date
-- Leap years within this period are automatically included in the date arithmetic
-- Example: first_entry_date="2023-03-29" + 10 years = target date "2033-03-29" = 3653 total days
-
-and used in all progress calculations.
-
-The effective **planning horizon** is:
-
-- `objective_years + processing_buffer_years` (e.g. up to 11 years), bounded by the fixed calendar range 2023–2040.
+The effective **planning horizon** is `objective_years + processing_buffer_years`, bounded by the timeline range.
 
 ## 3. Functional requirements
 
 ### FR‑1: Hardcoded calendar timeline
 
-- The application must build a day‑level timeline for the fixed range:
-  - From **2023‑01‑01** to **2040‑12‑31**.
+- The application must build a day‑level timeline for the range defined in **[Key Definitions](#15-key-definitions)**.
 - For each day, the app must know:
   - Its classification:
-    - In UK – normal.
-    - In UK – part of a short trip (<14 days).
-    - Abroad – part of a long trip (≥14 days).
+    - In UK – normal residence.
+    - Abroad – part of a short trip (<14 days, counts toward ILR total).
+    - Abroad – part of a long trip (≥14 days, does not count toward ILR).
   - Which visa period (if any) covers that day.
   - Which trip (if any) that day belongs to.
 - ILR counting must **not** start before `first_entry_date`:
@@ -66,9 +81,7 @@ The effective **planning horizon** is:
   - Optional `notes`
 - The application must:
   - Compute `trip_length_days` = (`return_date` - `departure_date`) + 1 (inclusive of both dates).
-  - Classify each trip as:
-    - **Short trip** if `trip_length_days < 14`.
-    - **Long trip** if `trip_length_days >= 14`.
+  - Apply trip classifications as defined in **[Key Definitions](#15-key-definitions)**.
   - For each day between `departure_date` and `return_date` inclusive:
     - Mark as “abroad”.
     - Tag with the trip’s short/long classification.
@@ -76,19 +89,14 @@ The effective **planning horizon** is:
 ### FR‑3: ILR day counting logic
 
 - The app must compute ILR‑counted days only for dates on or after `first_entry_date`.
-- For ILR‑style progress, days are classified and counted separately:
+- For ILR‑style progress, days are classified and counted using the metrics defined in **[Key Definitions](#15-key-definitions)**:
   - Days that are not part of any trip and are ≥ `first_entry_date` are counted as **ILR in‑UK days**.
-  - Days belonging to a **short trip** (<14 days) and ≥ `first_entry_date`:
+  - Days belonging to a **short trip** and ≥ `first_entry_date`:
     - Are counted separately as **short trip days**.
     - Do **not** contribute to "ILR in‑UK days".
-  - Days belonging to a **long trip** (≥14 days) and ≥ `first_entry_date`:
+  - Days belonging to a **long trip** and ≥ `first_entry_date`:
     - Are **not** counted towards any ILR metrics.
     - Contribute to the "long trip days" metric.
-- The application must calculate three distinct ILR metrics:
-  - **ILR in‑UK days**: Pure UK residence days (excluding short trips).
-  - **Short trip days**: Days spent on trips <14 days.
-  - **ILR total days**: Sum of "ILR in‑UK days" + "short trip days".
-  - **Long trip days**: Days spent on trips ≥14 days.
 - For each ILR metric type, the app must provide:
   - Current count of days achieved.
   - Target end date when `ilr_target_days` will be reached.
@@ -124,9 +132,9 @@ The effective **planning horizon** is:
     - Shows a 12-month grid (3x4 or 4x3 layout) for a selected year between 2023 and 2040.
     - Each month shows a mini-calendar with day classifications visible.
 - In both views, each day must be visually marked according to its classification:
-  - In UK – normal.
-  - In UK – short trip day.
-  - Abroad – long trip day.
+  - In UK – normal residence.
+  - Abroad – short trip day (counts toward ILR total).
+  - Abroad – long trip day (does not count toward ILR).
   - Visa period boundaries (start and end).
   - Trip period boundaries (start and end) - able to be clicked and open the respective pdf.
 - The UI must allow navigation:
@@ -136,17 +144,11 @@ The effective **planning horizon** is:
 ### FR‑6: Statistics panels
 
 - **Month view stats:**
-  - For the displayed month only (e.g., January 2024), show counts of:
-    - ILR in-UK days, Short trip days, ILR total days, Long trip days
+  - For the displayed month only, show counts of all ILR metrics defined in **[Key Definitions](#15-key-definitions)**
 - **Year view stats:**
-  - For the displayed year only (e.g., all of 2024), show counts of:
-    - ILR in-UK days, Short trip days, ILR total days, Long trip days
+  - For the displayed year only, show counts of all ILR metrics defined in **[Key Definitions](#15-key-definitions)**
 - **Global stats:**
-  - For the full range from 2023‑01‑01 to 2040‑12‑31, the app must show:
-    - Total ILR in-UK days since `first_entry_date`
-    - Total short trip days since `first_entry_date`
-    - Total ILR total days (sum of above two)
-    - Total long trip days since `first_entry_date`
+  - For the timeline range defined in **[Key Definitions](#15-key-definitions)**, show all ILR metrics since `first_entry_date`
     - **Dual scenario tracking:**
       - ILR in-UK scenario: current count, target end date, remaining days to reach `ilr_target_days`
       - ILR total scenario: current count, target end date, remaining days to reach `ilr_target_days`
@@ -170,8 +172,8 @@ The effective **planning horizon** is:
     - Display that it is an “In UK – normal day” and basic date/visa info.
 - PDF association rules:
   - Travel PDFs must be named using one of the patterns:
-    - One‑way: `SOR_DES_DD_MM_YYYY`
-    - Return: `SOR_DES_DD_MM_YYYY_DD_MM_YYYY`
+    - One‑way: `SOR_DES_DD-MM-YYYY`
+    - Return: `SOR_DES_DD-MM-YYYY_DD-MM-YYYY`
   - When showing a trip or a travel day, the app should:
     - Identify PDFs whose dates and airports match the trip’s departure/return and airport codes.
     - List matching PDFs (by filename).
@@ -186,7 +188,7 @@ The effective **planning horizon** is:
   - `visa_periods.json` - array of visa period objects
   - `trips.json` - array of trip objects
 - JSON must be human‑readable and hand‑editable (simple structures, no complex nesting).
-- All dates in JSON must use "YYYY-MM-DD" format.
+- Date formats are defined in **[Key Definitions](#15-key-definitions)**.
 - Invalid JSON files should display user-friendly error messages with file name and line number.
 
 ### NFR‑DATA‑2: Derived data
@@ -242,6 +244,116 @@ The effective **planning horizon** is:
   - Additional ILR‑related checks (e.g. 180‑day rolling absences).
   - Data export (CSV/Excel).
   - Support for multiple user profiles.
+
+## 7. Software Architecture Requirements
+
+### AR-1: Modular Architecture
+
+- **AR-1.1: Single Responsibility Principle**
+  - Each module must have a single, well-defined responsibility
+  - Classes and functions must not handle multiple unrelated concerns
+  - Separation of data models, business logic, storage, and UI layers
+
+- **AR-1.2: Configuration-Driven Design**
+  - All configurable parameters must be externalized to `config.json`
+  - Business logic must not contain hardcoded values (dates, thresholds, ranges)
+  - Timeline creation must require and validate `AppConfig` instance
+  - No optional configuration parameters that undermine architectural consistency
+
+- **AR-1.3: Explicit Dependencies**
+  - All module dependencies must be explicitly declared through imports
+  - No implicit dependencies or global state access
+  - Function parameters must be explicit rather than optional when they represent required business context
+
+### AR-2: Date Timeline Foundation
+
+- **AR-2.1: Day-by-Day Data Structure**
+  - Complete timeline must be generated for configured date range (e.g., 2023-2040)
+  - Each day must be represented as individual `Day` object with classification state
+  - Timeline must support day-level granularity for all business operations
+
+- **AR-2.2: Classification System**
+  - Implement enum-based `DayClassification` system with values:
+    - `UK_RESIDENCE`: Normal UK residence day
+    - `SHORT_TRIP`: Day during short trip (<14 days) - counts toward ILR total
+    - `LONG_TRIP`: Day during long trip (≥14 days) - does not count toward ILR
+    - `PRE_ENTRY`: Before first UK entry date
+    - `UNKNOWN`: Classification not yet determined
+  - All days must eventually be classified (no `UNKNOWN` days in production)
+
+- **AR-2.3: ILR Business Rules Integration**
+  - Business rules are defined authoritatively in **[Key Definitions](#15-key-definitions)** and **[FR-3](#fr3-ilr-day-counting-logic)**
+  - Architecture must implement these rules without hardcoding thresholds or logic
+
+### AR-3: Error Handling and Validation
+
+- **AR-3.1: Upward Error Propagation**
+  - Modules must propagate errors upward without internal error swallowing
+  - Lower-level modules must not handle errors meant for higher-level decision making
+  - Validation errors must be descriptive and include context (file names, line numbers, values)
+
+- **AR-3.2: Configuration Validation**
+  - `AppConfig` must validate all business rules during initialization
+  - Date range validation: years must be within reasonable bounds (2000-2100)
+  - Date format validation: formats defined in **[Key Definitions](#15-key-definitions)**
+  - First entry date must not allow trips before UK entry
+
+- **AR-3.3: Data Integrity Enforcement**
+  - JSON loading must require valid configuration for validation context
+  - Trip validation must prevent trips occurring before `first_entry_date`
+  - All date parsing must be consistent and validated
+
+### AR-4: Factory Pattern and Object Creation
+
+- **AR-4.1: Configuration-Only Creation**
+  - `DateTimeline` must only be created through `DateTimeline.from_config(config)`
+  - Direct constructor calls must be private/discouraged to enforce validation
+  - All business objects must derive their parameters from validated configuration
+
+- **AR-4.2: Singleton Pattern (Optional)**
+  - `DateTimeline` may implement optional singleton behavior for memory efficiency
+  - Singleton must validate configuration consistency across requests
+  - Must provide mechanism to reset singleton for testing (`reset_singleton()`)
+
+### AR-5: Code Organization and Modularity
+
+- **AR-5.1: Test Code Separation**
+  - Test code must be in separate files (e.g., `test_dates.py`)
+  - Production modules must not contain test functions or main blocks for testing
+  - Debug functionality must be controlled by explicit debug flags, not mixed with production code
+
+- **AR-5.2: No Duplicate Functionality**
+  - Avoid convenience functions that simply wrap class methods without added value
+  - Maintain single source of truth for business logic
+  - Class-based APIs preferred over parallel functional APIs
+
+- **AR-5.3: Import Structure**
+  - Relative imports within package: `from ..config import AppConfig`
+  - Clear module hierarchy: model layer imports from config layer
+  - No circular dependencies between modules
+
+### AR-6: Data Consistency and Calculation Accuracy
+
+- **AR-6.1: Avoid Double Counting**
+  - ILR total calculations must not double-count computed values
+  - When summing day counts, exclude derived totals from sum calculations
+  - Example: `total_days = ilr_in_uk_days + short_trip_days + long_trip_days + pre_entry_days` (excludes `ilr_total_days`)
+
+- **AR-6.2: Date Format Standardization**
+  - Date formats are defined in **[Key Definitions](#15-key-definitions)** and must be used consistently
+  - Internal date objects use Python `datetime.date` for calculations
+
+### AR-7: Debugging and Development Features
+
+- **AR-7.1: Debug Flag System**
+  - Debug features must be controlled by explicit boolean flags
+  - Debug output must not appear in production unless specifically requested
+  - Example: `get_classification_summary(debug=True)` includes detailed statistics
+
+- **AR-7.2: Development vs Production Separation**
+  - Production code paths must be clean and performant
+  - Debug information available on demand but not by default
+  - Validation warnings acceptable in debug mode, silent in production
 
 ## 6. MVP scope
 
