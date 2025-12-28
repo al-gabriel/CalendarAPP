@@ -16,7 +16,7 @@ class CalendarView:
     Main calendar widget showing month view with navigation.
     
     Displays current month in a grid format with day numbers.
-    Supports navigation between months within valid date range (2023-2040).
+    Supports navigation between months within configurable date range.
     """
     
     def __init__(self, parent: tk.Widget, current_date: Optional[date] = None, config=None):
@@ -31,7 +31,7 @@ class CalendarView:
         self.parent = parent
         self.config = config
         
-        # Set date range from config if available, otherwise use defaults
+        # Set date range from config if available, otherwise use safe defaults
         if config:
             self.min_year = config.start_year
             self.max_year = config.end_year
@@ -337,11 +337,11 @@ class CalendarView:
         year = self.current_date.year
         month = self.current_date.month
         
-        # Check if at minimum date (January 2023)
+        # Check if at minimum date (January min_year)
         at_min_date = (year == self.min_year and month == 1)
         at_min_year = (year == self.min_year)
         
-        # Check if at maximum date (December 2040)  
+        # Check if at maximum date (December max_year)  
         at_max_date = (year == self.max_year and month == 12)
         at_max_year = (year == self.max_year)
         

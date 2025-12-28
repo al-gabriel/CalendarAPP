@@ -109,12 +109,12 @@ class AppConfig:
             raise ValueError("processing_buffer_years must be a non-negative integer")
             
         # Validate start_year is reasonable
-        if not isinstance(self.start_year, int) or self.start_year < 2000:
-            raise ValueError("start_year must be a valid year >= 2000")
+        if not isinstance(self.start_year, int) or self.start_year < 2000 or self.start_year > 2100:
+            raise ValueError("start_year must be a valid year between 2000 and 2100")
             
-        # Validate end_year is after start_year
-        if not isinstance(self.end_year, int) or self.end_year <= self.start_year:
-            raise ValueError("end_year must be greater than start_year")
+        # Validate end_year is after start_year and within reasonable bounds
+        if not isinstance(self.end_year, int) or self.end_year <= self.start_year or self.end_year > 2100:
+            raise ValueError("end_year must be greater than start_year and no later than 2100")
             
         # Validate and parse first_entry_date format
         try:
