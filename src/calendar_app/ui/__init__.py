@@ -1,10 +1,12 @@
 """
 UI Package
 
-Contains user interface modules for the Calendar App.
+Contains user interface components and views for the Calendar App.
 """
 
-# Import main UI components for easy access
-from .calendar_view import CalendarView
+# Import new architecture components for easy access
+from .views.view_manager import ViewManager, ViewType
+from .views.month_view import MonthView
+from .components.navigation_header import NavigationHeader
 
-__all__ = ['CalendarView']
+__all__ = ['ViewManager', 'ViewType', 'MonthView', 'NavigationHeader']
