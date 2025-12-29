@@ -66,8 +66,8 @@ class ILRStatisticsModule(tk.Frame):
         separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         separator.pack(fill=tk.X, pady=5)
         
-        # Total Scenario - ORANGE title
-        total_frame = tk.LabelFrame(self, text="Total Scenario (UK + Short Trips)", 
+        # Best Scenario - ORANGE title
+        total_frame = tk.LabelFrame(self, text="Best Scenario (UK + Short Trips)", 
                                    font=("Arial", 10, "bold"), fg="darkorange")
         total_frame.pack(fill=tk.X, pady=(0, 8))
         
@@ -88,7 +88,7 @@ class ILRStatisticsModule(tk.Frame):
         self.total_completion_button.pack(anchor=tk.W, padx=5, pady=2)
         
         # In-UK Scenario - YELLOW title
-        uk_frame = tk.LabelFrame(self, text="In-UK Scenario", 
+        uk_frame = tk.LabelFrame(self, text="Total Scenario", 
                                 font=("Arial", 10, "bold"), fg="goldenrod")
         uk_frame.pack(fill=tk.X, pady=(0, 8))
         

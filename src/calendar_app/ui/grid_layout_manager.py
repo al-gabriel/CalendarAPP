@@ -80,7 +80,9 @@ class GridLayoutManager(tk.Frame):
         # Create info modules first (before calendar component that might trigger callbacks)
         self.month_info_module = MonthInfoModule(self, self.timeline)
         self.year_info_module = YearInfoModule(self, self.timeline)
-        self.day_info_module = DayInfoModule(self, self.timeline)
+        self.day_info_module = DayInfoModule(self, self.timeline, 
+                                           on_date_click=self.on_date_selected,
+                                           on_back_click=self.on_day_back_click)
         
         # Top-left: ILR Statistics Module
         self.ilr_statistics_module = ILRStatisticsModule(
@@ -157,8 +159,17 @@ class GridLayoutManager(tk.Frame):
         if self.calendar_component:
             self.calendar_component.set_current_date(selected_date)
         
-        # For now, keep month info module (day info is placeholder)
+        # Switch to day info module and update it with selected date
+        self.switch_info_module("day")
+        if self.day_info_module:
+            self.day_info_module.set_selected_date(selected_date)
+    
+    def on_day_back_click(self):
+        """Handle back button click from day info module - return to month view."""
         self.switch_info_module("month")
+        # Update the month info module with the current date
+        if self.month_info_module and hasattr(self.month_info_module, 'set_current_date'):
+            self.month_info_module.set_current_date(self.current_date)
     
     def refresh_all(self):
         """Refresh all modules."""

@@ -66,8 +66,8 @@ class CalendarApp:
         # Set window title (shown in title bar)
         self.root.title("UK ILR Calendar App")
         
-        # Set initial window size: width x height in pixels
-        self.root.geometry("800x600")
+        # Set initial window size to the minimum size to ensure proper layout
+        self.root.geometry("900x700")
         
         # Allow window resizing (True = resizable, False = fixed size)
         self.root.resizable(True, True)

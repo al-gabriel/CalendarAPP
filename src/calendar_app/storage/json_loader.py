@@ -73,7 +73,7 @@ class DataLoader:
         Raises:
             ValueError: If trip data is invalid
         """
-        required_fields = ["id", "departure_date", "return_date", "from_airport", "to_airport"]
+        required_fields = ["id", "departure_date", "return_date", "outbound_flight", "inbound_flight"]
         
         # Check required fields
         for field in required_fields:

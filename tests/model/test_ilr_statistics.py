@@ -61,9 +61,7 @@ class MockTripClassifier:
             'trip_type': None,
             'departure_date': None,
             'return_date': None,
-            'trip_length_days': None,
-            'from_airport': None,
-            'to_airport': None
+            'trip_length_days': None
         }
 
 
