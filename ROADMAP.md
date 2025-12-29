@@ -58,16 +58,16 @@ S  - Full classification integration with counting and querying methods
   - **Test:** Calendar visually shows your trip patterns
 
 ### Afternoon Session (2-3 hours)
-- [ ] **ILR Statistics Engine**
-  - `model/stats.py` - core ILR counting logic
+- [X] **ILR Statistics Engine**
+  - `model/ilr_statistics.py` - core ILR counting logic and dual scenario support
   - Calculate separate metrics: ILR in-UK days, Short trip days, ILR total days
-  - Month/Year/Global statistics calculations
+  - Month/Year/Global statistics calculations with progress tracking
   - **Test:** Verify statistics match manual calculations
 
 - [ ] **Statistics UI Panel**
-  - `ui/stats_panel.py` - display statistics for current month
-  - Show both ILR scenarios (in-UK vs total)
-  - Target completion dates and remaining days
+  - `ui/components/statistics_panel.py` - display statistics component  
+  - Show both ILR scenarios (in-UK vs total) with completion dates
+  - Target completion dates and remaining days for each scenario
   - **Test:** See real progress numbers for your ILR journey
 
 ### Evening Session (1-2 hours)

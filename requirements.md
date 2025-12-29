@@ -39,6 +39,15 @@
 - Counting starts from `first_entry_date` only (configurable)
 - Days before first entry never count toward any ILR metrics
 - Target calculation uses exact date arithmetic including leap years
+- **Two scenarios tracked due to regulatory uncertainty:**
+  - **Scenario 1 (In-UK Only):** Short trips do NOT count toward ILR → only pure UK residence days count
+  - **Scenario 2 (Total Days):** Short trips DO count toward ILR → UK residence + short trips count
+  - **Both scenarios:** Same target days requirement, long trips never count in either scenario
+
+**ILR Scenario Implications:**
+- **In-UK scenario:** More conservative - any travel (short or long) delays completion
+- **Total scenario:** More optimistic - only long trips delay completion, short trips help reach target
+- **Both scenarios:** Track progress toward dynamically calculated target based on `objective_years` accounting for actual leap years in the period
 
 ## 2. Configuration
 
@@ -106,7 +115,10 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Total short trip days.
   - Total ILR total days (sum of above two).
   - Total long trip days.
-  - Target completion dates and remaining days for both "ILR in‑UK days" and "ILR total days" scenarios.
+  - Target completion dates and remaining days for both ILR scenarios:
+    - **In-UK scenario:** Based on pure UK residence days only (conservative estimate)
+    - **Total scenario:** Based on UK residence + short trips (optimistic estimate)
+    - **Both scenarios:** Same target requirement, different counting rules due to regulatory uncertainty
 
 ### FR‑4: Visa period management
 
@@ -149,9 +161,16 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - For the displayed year only, show counts of all ILR metrics defined in **[Key Definitions](#15-key-definitions)**
 - **Global stats:**
   - For the timeline range defined in **[Key Definitions](#15-key-definitions)**, show all ILR metrics since `first_entry_date`
-    - **Dual scenario tracking:**
-      - ILR in-UK scenario: current count, target end date, remaining days to reach `ilr_target_days`
-      - ILR total scenario: current count, target end date, remaining days to reach `ilr_target_days`
+    - **Dual scenario tracking (regulatory uncertainty handling):**
+      - **In-UK scenario:** Conservative tracking assuming short trips don't count
+        - Current count: only pure UK residence days
+        - Target completion date: when UK residence reaches `ilr_target_days`
+        - Remaining days: days of UK residence still needed
+      - **Total scenario:** Optimistic tracking assuming short trips do count
+        - Current count: UK residence + short trips
+        - Target completion date: when total qualifying days reach `ilr_target_days`
+        - Remaining days: total qualifying days still needed
+      - **Note:** Both scenarios target the same `ilr_target_days` requirement
   - The app should allow:
     - Filtering global stats by visa period selection:
       - "All periods" (default) - shows metrics across all visa periods
@@ -323,13 +342,14 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - All data structures must be built during object initialization (constructor)
   - No lazy-loading patterns - all expensive operations happen at creation time
   - Methods should only access pre-built data structures for predictable performance
-  - Fail-fast principle: errors caught immediately during object creation
+  - Fail-fast behavior preferred - detect errors at object creation time
+  - Clear error messages for missing or invalid required parametersrentation
   - Supports refresh functionality: objects can be recreated to reload data
 
 - **AR-4.4: Data Refresh Architecture**
   - Application must support refresh functionality to reload JSON data changes
   - Refresh must recreate all data-dependent objects (TripClassifier, DateTimeline)
-  - Refresh must maintain UI state where possible (current month view, etc.)
+  - UI state must be preserved during refresh (current month view, etc.)
   - All data objects must be designed for recreation without side effects
 
 - **AR-4.5: Required Parameters Policy**
@@ -345,23 +365,37 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
     - `day.py`: Day class and DayClassification enum
     - `timeline.py`: DateTimeline class for day-by-day timeline management
     - `trips.py`: TripClassifier for trip-based logic
+    - `visaPeriods.py`: VisaClassifier for visa period logic
+    - `ilr_statistics.py`: ILRStatisticsEngine for ILR business logic
+  - UI architecture:
+    - `ui/views/`: View classes (MonthView, BaseCalendarView, ViewManager)
+    - `ui/components/`: Reusable UI components (NavigationHeader, StatisticsPanel)
   - Each module has single responsibility principle
-  - Clear separation of concerns between trip classification and day classification
+  - Clear separation of concerns between data classification and business logic
 
 - **AR-5.2: Test Code Separation**
-  - Test code must be in separate files matching module structure:
+  - Test code must be in separate files matching pattern `test_*.py`:
     - `test_day.py`: Tests for Day class and DayClassification
     - `test_timeline.py`: Tests for DateTimeline functionality
     - `test_trips.py`: Tests for TripClassifier functionality
+    - `test_visaPeriods.py`: Tests for VisaClassifier functionality
   - Production modules must not contain test functions or main blocks for testing
   - Debug functionality must be controlled by explicit debug flags, not mixed with production code
 
-- **AR-5.3: No Duplicate Functionality**
-  - Avoid convenience functions that simply wrap class methods without added value
-  - Maintain single source of truth for business logic
-  - Class-based APIs preferred over parallel functional APIs
-  - TripClassifier focuses on trip-related functionality only
-  - DateTimeline handles day classification using trip data
+- **AR-5.3: Import Structure and Architecture**
+  - Standard Python imports used throughout: `from calendar_app.config import AppConfig`
+  - Clear module hierarchy: model layer imports from config layer
+  - No circular dependencies between modules
+  - Component-based UI architecture:
+    - ViewManager handles view switching and lifecycle
+    - BaseCalendarView provides common view functionality
+    - NavigationHeader extracted as reusable component
+  - Separation of concerns:
+    - Timeline handles data classification only
+    - ILRStatisticsEngine handles all ILR business logic
+    - TripClassifier focuses on trip-related functionality only
+    - DateTimeline handles day classification using trip data
+
 
 ### AR-6: Error Handling and Validation
 
@@ -377,29 +411,63 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Configuration consistency must be enforced across all components
   - Type validation and range checking for all user-provided data
 
-### AR-6: Data Consistency and Calculation Accuracy
+### AR-7: Data Consistency and Calculation Accuracy
 
-- **AR-6.1: Avoid Double Counting**
+- **AR-7.1: Avoid Double Counting**
   - ILR total calculations must not double-count computed values
   - When summing day counts, exclude derived totals from sum calculations
   - Example: `total_days = ilr_in_uk_days + short_trip_days + long_trip_days + pre_entry_days` (excludes `ilr_total_days`)
 
-- **AR-6.2: Date Format Standardization**
+- **AR-7.2: Date Format Standardization**
   - Date formats are defined in **[Key Definitions](#15-key-definitions)** and must be used consistently
   - Internal date objects use Python `datetime.date` for calculations
 
-### AR-7: Debugging and Development Features
+### AR-8: Debugging and Development Features
 
-- **AR-7.1: Debug Flag System**
+- **AR-8.1: Debug Flag System**
   - Debug features must be controlled by explicit boolean flags
   - Debug output must not appear in production unless specifically requested
   - Example: `get_classification_summary(debug=True)` includes detailed statistics
 
-- **AR-7.2: Development vs Production Separation**
+- **AR-8.2: Development vs Production Separation**
   - Production code paths must be clean and performant
   - Debug information available on demand but not by default
   - Validation warnings acceptable in debug mode, silent in production
 
+### AR-9: Component-Based UI Architecture
+
+- **AR-9.1: View Management System**
+  - `ViewManager` class handles view switching and lifecycle management
+  - `BaseCalendarView` provides common functionality for all calendar views
+  - View types managed through `ViewType` enum for type safety
+  - Clear separation between view logic and data processing
+
+- **AR-9.2: Component Reusability**
+  - `NavigationHeader` extracted as reusable component across views
+  - `StatisticsPanel` designed as self-contained component
+  - Components accept required dependencies through constructor injection
+  - No direct UI framework dependencies in business logic classes
+
+- **AR-9.3: Business Logic Separation**
+  - Timeline handles pure data classification without ILR business logic
+  - ILRStatisticsEngine contains all ILR-specific calculations and projections
+  - Clean interfaces between UI components and business logic
+  - Dual scenario support (In-UK vs Total) implemented at business logic level
+
+### AR-10: Dynamic ILR Calculation Requirements
+
+- **AR-10.1: Leap Year Accurate Calculations**
+  - ILR requirement calculated dynamically from `objective_years` configuration
+  - Accounts for actual leap years in the target period from `first_entry_date`
+  - No hardcoded day requirements - adapts to any objective timeframe
+  - Proper date arithmetic ensuring accuracy across leap year boundaries
+
+- **AR-10.2: Dual Scenario Architecture**
+  - In-UK scenario: Conservative tracking (only UK residence days count)
+  - Total scenario: Optimistic tracking (UK residence + short trips count)
+  - Both scenarios use identical target requirement with different counting rules
+  - Completion date projections account for scenario-specific implications
+  
 ## 6. MVP scope
 
 The minimum viable product (MVP) for this app includes:
