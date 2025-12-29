@@ -248,91 +248,6 @@ class DateTimeline:
             
         return counts
     
-    def get_ilr_counts_total(self) -> Dict[str, int]:
-        """
-        Get ILR-specific day counts across the entire timeline.
-        Uses first_entry_date from config to determine qualifying days.
-        
-        Returns:
-            Dict with keys: 'ilr_in_uk_days', 'short_trip_days', 'ilr_total_days', 'long_trip_days', 'pre_entry_days'
-        """
-        first_entry = self.config.first_entry_date_obj
-        counts = {
-            'ilr_in_uk_days': 0,
-            'short_trip_days': 0,
-            'ilr_total_days': 0,
-            'long_trip_days': 0,
-            'pre_entry_days': 0
-        }
-        
-        for day in self.days.values():
-            if day.counts_as_ilr_in_uk_day(first_entry):
-                counts['ilr_in_uk_days'] += 1
-            elif day.counts_as_short_trip_day(first_entry):
-                counts['short_trip_days'] += 1
-            elif day.counts_as_long_trip_day(first_entry):
-                counts['long_trip_days'] += 1
-            elif day.date < first_entry:
-                counts['pre_entry_days'] += 1
-        
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
-        return counts
-    
-    def get_ilr_counts_for_month(self, year: int, month: int) -> Dict[str, int]:
-        """
-        Get ILR-specific day counts for a specific month.
-        Uses first_entry_date from config to determine qualifying days.
-        """
-        first_entry = self.config.first_entry_date_obj
-        counts = {
-            'ilr_in_uk_days': 0,
-            'short_trip_days': 0,
-            'ilr_total_days': 0,
-            'long_trip_days': 0,
-            'pre_entry_days': 0
-        }
-        
-        month_days = self.get_days_in_month(year, month)
-        for day in month_days:
-            if day.counts_as_ilr_in_uk_day(first_entry):
-                counts['ilr_in_uk_days'] += 1
-            elif day.counts_as_short_trip_day(first_entry):
-                counts['short_trip_days'] += 1
-            elif day.counts_as_long_trip_day(first_entry):
-                counts['long_trip_days'] += 1
-            elif day.date < first_entry:
-                counts['pre_entry_days'] += 1
-        
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
-        return counts
-    
-    def get_ilr_counts_for_year(self, year: int) -> Dict[str, int]:
-        """
-        Get ILR-specific day counts for a specific year.
-        Uses first_entry_date from config to determine qualifying days.
-        """
-        first_entry = self.config.first_entry_date_obj
-        counts = {
-            'ilr_in_uk_days': 0,
-            'short_trip_days': 0,
-            'ilr_total_days': 0,
-            'long_trip_days': 0,
-            'pre_entry_days': 0
-        }
-        
-        year_days = self.get_days_in_year(year)
-        for day in year_days:
-            if day.counts_as_ilr_in_uk_day(first_entry):
-                counts['ilr_in_uk_days'] += 1
-            elif day.counts_as_short_trip_day(first_entry):
-                counts['short_trip_days'] += 1
-            elif day.counts_as_long_trip_day(first_entry):
-                counts['long_trip_days'] += 1
-            elif day.date < first_entry:
-                counts['pre_entry_days'] += 1
-        
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
-        return counts
     
     def update_date_range_classification(self, start_date: date, end_date: date, 
                                        classification: DayClassification,
@@ -426,6 +341,7 @@ class DateTimeline:
     def get_classification_summary(self, start_date: Optional[date] = None, end_date: Optional[date] = None, debug: bool = False) -> Dict[str, any]:
         """
         Get comprehensive summary of timeline classification status.
+        Focused on day classification data only (no ILR-specific logic).
         
         Args:
             start_date: Optional start date for summary range (defaults to timeline start)
@@ -433,7 +349,7 @@ class DateTimeline:
             debug: If True, include debug information (classification_counts, percentages)
         
         Returns:
-            Dictionary with ILR counts and optionally debug statistics
+            Dictionary with timeline classification statistics
         """
         # Determine the actual date range to analyze
         if start_date is None:
@@ -446,46 +362,16 @@ class DateTimeline:
         else:
             actual_end_date = end_date
         
-        # Get counts for the specified date range
+        # Get classification counts for the specified date range
         if start_date is None and end_date is None:
             # Use optimized whole-timeline methods
-            ilr_counts = self.get_ilr_counts_total()
+            classification_counts = self.get_classification_counts_total()
             total_days = self.get_total_days()
             date_range_description = f"{self.start_year}-{self.end_year} (full timeline)"
-            if debug:
-                classification_counts = self.get_classification_counts_total()
         else:
-            # Calculate ILR counts for date range
-            first_entry = self.config.first_entry_date_obj
-            ilr_counts = {
-                'ilr_in_uk_days': 0,
-                'short_trip_days': 0,
-                'ilr_total_days': 0,
-                'long_trip_days': 0,
-                'pre_entry_days': 0
-            }
-            
-            if debug:
-                classification_counts = self.get_classification_counts_for_date_range(actual_start_date, actual_end_date)
-            
-            current_date = actual_start_date
-            while current_date <= actual_end_date:
-                day_obj = self.get_day(current_date)
-                if day_obj:
-                    if day_obj.counts_as_ilr_in_uk_day(first_entry):
-                        ilr_counts['ilr_in_uk_days'] += 1
-                    elif day_obj.counts_as_short_trip_day(first_entry):
-                        ilr_counts['short_trip_days'] += 1
-                    elif day_obj.counts_as_long_trip_day(first_entry):
-                        ilr_counts['long_trip_days'] += 1
-                    elif day_obj.date < first_entry:
-                        ilr_counts['pre_entry_days'] += 1
-                current_date += timedelta(days=1)
-            
-            ilr_counts['ilr_total_days'] = ilr_counts['ilr_in_uk_days'] + ilr_counts['short_trip_days']
-            # Calculate total days excluding the computed ilr_total_days to avoid double counting
-            total_days = (ilr_counts['ilr_in_uk_days'] + ilr_counts['short_trip_days'] + 
-                         ilr_counts['long_trip_days'] + ilr_counts['pre_entry_days'])
+            # Calculate classification counts for date range
+            classification_counts = self.get_classification_counts_for_date_range(actual_start_date, actual_end_date)
+            total_days = sum(classification_counts.values())
             date_range_description = f"{actual_start_date.strftime('%d-%m-%Y')} to {actual_end_date.strftime('%d-%m-%Y')}"
         
         # Build main result (always visible)
@@ -494,8 +380,7 @@ class DateTimeline:
             'date_range': date_range_description,
             'actual_start_date': actual_start_date.strftime('%d-%m-%Y'),
             'actual_end_date': actual_end_date.strftime('%d-%m-%Y'),
-            'first_entry_date': self.config.first_entry_date,
-            'ilr_counts': ilr_counts
+            'classification_counts': {k.value: v for k, v in classification_counts.items()}
         }
         
         # Add debug information only if requested
@@ -509,7 +394,6 @@ class DateTimeline:
                 print(f"WARNING: {unknown_count} days remain UNKNOWN - timeline not fully classified!")
             
             result['debug_info'] = {
-                'classification_counts': {k.value: v for k, v in classification_counts.items()},
                 'classification_progress': {
                     'classified_percentage': round(classified_percentage, 1),
                     'unknown_percentage': round(unknown_percentage, 1),

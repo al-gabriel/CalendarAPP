@@ -9,7 +9,7 @@ from datetime import date, timedelta
 import calendar
 
 # Add the src directory to Python path to import our modules
-project_root = Path(__file__).parent.parent.parent.parent
+project_root = Path(__file__).parent.parent
 src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
@@ -335,54 +335,12 @@ def test_date_timeline_classification_methods():
     teardown_test()
 
 
-def test_date_timeline_ilr_methods():
-    """Test DateTimeline ILR-specific methods."""
-    print("=== Testing DateTimeline ILR Methods ===")
-    
-    setup_test()
-    config = MockAppConfig(2023, 2024, "01-06-2023")  # June 1st first entry, smaller range for testing
-    mock_trip_classifier = MockTripClassifier(config)
-    mock_visaPeriod_classifier = MockVisaPeriodClassifier(config)
-    timeline = DateTimeline.from_config(config, mock_trip_classifier, mock_visaPeriod_classifier, use_singleton=False)
-    
-    # Manually set up some test classifications to verify ILR counting
-    timeline.update_day_classification(date(2023, 7, 1), DayClassification.UK_RESIDENCE)  
-    timeline.update_day_classification(date(2023, 7, 2), DayClassification.SHORT_TRIP)
-    timeline.update_day_classification(date(2023, 7, 3), DayClassification.LONG_TRIP)
-    # Days before 2023-06-01 should already be PRE_ENTRY
-    
-    # Test get_ilr_counts_total
-    ilr_counts = timeline.get_ilr_counts_total()
-    assert 'ilr_in_uk_days' in ilr_counts, "Should have ilr_in_uk_days key"
-    assert 'short_trip_days' in ilr_counts, "Should have short_trip_days key"
-    assert 'ilr_total_days' in ilr_counts, "Should have ilr_total_days key"
-    assert 'long_trip_days' in ilr_counts, "Should have long_trip_days key"
-    assert 'pre_entry_days' in ilr_counts, "Should have pre_entry_days key"
-    
-    # Verify specific counts for our test data
-    assert ilr_counts['short_trip_days'] >= 1, f"Expected at least 1 short trip day, got {ilr_counts['short_trip_days']}"
-    assert ilr_counts['long_trip_days'] >= 1, f"Expected at least 1 long trip day, got {ilr_counts['long_trip_days']}"
-    assert ilr_counts['pre_entry_days'] > 0, f"Expected some pre-entry days, got {ilr_counts['pre_entry_days']}"
-    
-    # ILR total should be ilr_in_uk_days + short_trip_days
-    expected_total = ilr_counts['ilr_in_uk_days'] + ilr_counts['short_trip_days']
-    assert ilr_counts['ilr_total_days'] == expected_total, f"Expected ILR total {expected_total}, got {ilr_counts['ilr_total_days']}"
-    print("✓ get_ilr_counts_total() works correctly")
-    
-    # Test get_ilr_counts_for_month
-    july_counts = timeline.get_ilr_counts_for_month(2023, 7)
-    assert july_counts['short_trip_days'] >= 1, f"Expected at least 1 short trip day in July, got {july_counts['short_trip_days']}"
-    assert july_counts['long_trip_days'] >= 1, f"Expected at least 1 long trip day in July, got {july_counts['long_trip_days']}"
-    print("✓ get_ilr_counts_for_month() works correctly")
-    
-    # Test get_ilr_counts_for_year
-    year_2023_counts = timeline.get_ilr_counts_for_year(2023)
-    assert year_2023_counts['pre_entry_days'] > 0, f"Expected some pre-entry days in 2023, got {year_2023_counts['pre_entry_days']}"
-    assert year_2023_counts['ilr_total_days'] >= 2, f"Expected at least 2 ILR total days, got {year_2023_counts['ilr_total_days']}"
-    print("✓ get_ilr_counts_for_year() works correctly")
-    
-    print("✓ All DateTimeline ILR methods tests passed\n")
-    teardown_test()
+# NOTE: ILR-specific counting methods have been moved to ILRStatisticsEngine
+# These methods are now tested in test_ilr_statistics.py:
+# - get_ilr_counts_total()
+# - get_ilr_counts_for_month()
+# - get_ilr_counts_for_year() 
+# - get_ilr_counts_for_date_range()
 
 
 def test_date_timeline_auto_classification():
@@ -456,21 +414,20 @@ def test_date_timeline_summary_methods():
     # Test get_classification_summary without debug
     summary = timeline.get_classification_summary()
     
-    # Verify required keys
-    required_keys = ['total_days', 'date_range', 'actual_start_date', 'actual_end_date', 'first_entry_date', 'ilr_counts']
+    # Verify required keys (updated for timeline-only focus, no ILR-specific data)
+    required_keys = ['total_days', 'date_range', 'actual_start_date', 'actual_end_date', 'classification_counts']
     for key in required_keys:
         assert key in summary, f"Expected key '{key}' in summary"
     
     # Verify data types and values
     assert isinstance(summary['total_days'], int), f"total_days should be int, got {type(summary['total_days'])}"
     assert summary['total_days'] > 0, f"Expected positive total_days, got {summary['total_days']}"
-    assert isinstance(summary['ilr_counts'], dict), f"ilr_counts should be dict, got {type(summary['ilr_counts'])}"
-    print("✓ get_classification_summary() basic functionality works")
+    assert isinstance(summary['classification_counts'], dict), f"classification_counts should be dict, got {type(summary['classification_counts'])}"
+    print("✓ get_classification_summary() basic functionality works (timeline-focused, no ILR data)")
     
     # Test get_classification_summary with debug
     debug_summary = timeline.get_classification_summary(debug=True)
     assert 'debug_info' in debug_summary, "Debug summary should have debug_info"
-    assert 'classification_counts' in debug_summary['debug_info'], "Debug info should have classification_counts"
     assert 'classification_progress' in debug_summary['debug_info'], "Debug info should have classification_progress"
     
     debug_progress = debug_summary['debug_info']['classification_progress']
@@ -585,7 +542,6 @@ def run_all_timeline_tests():
     test_date_timeline_basic_methods()
     test_date_timeline_month_year_methods()
     test_date_timeline_classification_methods()
-    test_date_timeline_ilr_methods()
     test_date_timeline_auto_classification()
     test_date_timeline_summary_methods()
     test_leap_year_boundary_conditions()
