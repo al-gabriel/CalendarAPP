@@ -3,16 +3,24 @@
     "id": "trip_1",
     "departure_date": "10-06-2023",
     "return_date": "20-06-2023", 
-    "from_airport": "LHR",
-    "to_airport": "LIS",
+    "outbound_flight": "LHR-LIS",
+    "inbound_flight": "LIS-LHR",
     "notes": "Summer holiday – example short trip (<14 days)"
   },
   {
     "id": "trip_2", 
     "departure_date": "01-12-2024",
     "return_date": "15-01-2025",
-    "from_airport": "LHR",
-    "to_airport": "OPO", 
+    "outbound_flight": "LHR-OPO",
+    "inbound_flight": "OPO-LHR", 
     "notes": "Christmas and New Year – example long trip (>=14 days)"
+  },
+  {
+    "id": "trip_3",
+    "departure_date": "15-03-2025",
+    "return_date": "20-03-2025",
+    "outbound_flight": "LGW-LIS",
+    "inbound_flight": "FAO-LGW",
+    "notes": "Example multi-airport trip - outbound to Lisbon, return from Faro"
   }
 ]

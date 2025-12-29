@@ -39,8 +39,8 @@ def create_test_trip_data() -> List[Dict]:
             "return_date_obj": date(2023, 6, 20),
             "trip_length_days": 11,
             "is_short_trip": True,
-            "from_airport": "LHR",
-            "to_airport": "LIS",
+            "outbound_flight": "LHR-LIS",
+            "inbound_flight": "LIS-LHR",
             "notes": "Summer holiday - short trip"
         },
         {
@@ -51,8 +51,8 @@ def create_test_trip_data() -> List[Dict]:
             "return_date_obj": date(2025, 1, 15),
             "trip_length_days": 46,
             "is_short_trip": False,
-            "from_airport": "LHR",
-            "to_airport": "OPO", 
+            "outbound_flight": "LHR-OPO",
+            "inbound_flight": "OPO-LHR",
             "notes": "Christmas holidays - long trip"
         },
         {
@@ -63,8 +63,8 @@ def create_test_trip_data() -> List[Dict]:
             "return_date_obj": date(2024, 3, 22),
             "trip_length_days": 8,
             "is_short_trip": True,
-            "from_airport": "LGW",
-            "to_airport": "BCN",
+            "outbound_flight": "LGW-BCN",
+            "inbound_flight": "BCN-LGW",
             "notes": "Short business trip"
         }
     ]
@@ -226,8 +226,8 @@ def test_get_trip_summary():
         'departure_date': date(2023, 6, 10),
         'return_date': date(2023, 6, 20),
         'trip_length_days': 11,
-        'from_airport': 'LHR',
-        'to_airport': 'LIS'
+        'outbound_flight': 'LHR-LIS',
+        'inbound_flight': 'LIS-LHR'
     }
     
     for key, expected_value in expected_short_summary.items():
@@ -246,8 +246,8 @@ def test_get_trip_summary():
         'departure_date': date(2024, 12, 1),
         'return_date': date(2025, 1, 15),
         'trip_length_days': 46,
-        'from_airport': 'LHR',
-        'to_airport': 'OPO'
+        'outbound_flight': 'LHR-OPO',
+        'inbound_flight': 'OPO-LHR'
     }
     
     for key, expected_value in expected_long_summary.items():
@@ -265,9 +265,7 @@ def test_get_trip_summary():
         'trip_type': None,
         'departure_date': None,
         'return_date': None,
-        'trip_length_days': None,
-        'from_airport': None,
-        'to_airport': None
+        'trip_length_days': None
     }
     
     for key, expected_value in expected_uk_summary.items():

@@ -78,9 +78,7 @@ class MockTripClassifier:
             'trip_type': None,
             'departure_date': None,
             'return_date': None,
-            'trip_length_days': None,
-            'from_airport': None,
-            'to_airport': None
+            'trip_length_days': None
         }
     
     def add_mock_trip(self, start_date, end_date, is_short_trip=True, trip_id="mock_trip"):

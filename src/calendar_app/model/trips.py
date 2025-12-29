@@ -126,21 +126,25 @@ class TripClassifier:
                 'trip_type': None,
                 'departure_date': None,
                 'return_date': None,
-                'trip_length_days': None,
-                'from_airport': None,
-                'to_airport': None
+                'trip_length_days': None
             }
+        
+        # Get flight information directly from trip data
+        departure_date = trip_info["departure_date_obj"]
+        return_date = trip_info["return_date_obj"]
+        outbound_flight = trip_info.get("outbound_flight", "")
+        inbound_flight = trip_info.get("inbound_flight", "")
         
         return {
             'classification': 'SHORT_TRIP' if trip_info["is_short_trip"] else 'LONG_TRIP',
             'is_trip_day': True,
             'trip_id': trip_info.get("id"),
             'trip_type': 'short' if trip_info["is_short_trip"] else 'long',
-            'departure_date': trip_info["departure_date_obj"],
-            'return_date': trip_info["return_date_obj"], 
+            'departure_date': departure_date,
+            'return_date': return_date, 
             'trip_length_days': trip_info["trip_length_days"],
-            'from_airport': trip_info.get("from_airport"),
-            'to_airport': trip_info.get("to_airport")
+            'outbound_flight': outbound_flight,
+            'inbound_flight': inbound_flight
         }
         
     def get_all_trips(self) -> List[Dict]:
