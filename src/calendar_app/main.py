@@ -19,7 +19,7 @@ from pathlib import Path               # Modern path handling (better than os.pa
 # Local module imports - our own code files
 from calendar_app.config import AppConfig           # Configuration management class
 from calendar_app.storage.json_loader import DataLoader  # JSON data loading utilities
-from calendar_app.ui.views.view_manager import ViewManager, ViewType    # New view management system
+from calendar_app.ui.grid_layout_manager import GridLayoutManager  # Main 2x2 grid layout coordinator
 from calendar_app.model.timeline import DateTimeline          # Date timeline with ILR logic
 from calendar_app.model.trips import TripClassifier        # Trip classification system
 from calendar_app.model.visaPeriods import VisaClassifier  # Visa period classification system
@@ -50,7 +50,6 @@ class CalendarApp:
         self.data_loader = None            # Will hold data loading object
         self.trips = []                    # Initialize as empty list (prevent AttributeError)
         self.visaPeriods = []             # Initialize as empty list (prevent AttributeError)
-        self.view_manager = None           # Will hold view manager for calendar views
         
         # Call initialization methods in sequence
         # (Python allows calling methods from constructor, unlike some C conventions)
@@ -89,11 +88,11 @@ class CalendarApp:
         # Set window position: +x+y offset from top-left corner
         self.root.geometry(f"+{x}+{y}")    # f-strings are like sprintf() in C
         
-        # Set minimum window size to accommodate fixed calendar grid
-        # Calendar fixed size: 500px width + navigation/padding ≈ 600px total width  
-        # Calendar fixed size: 400px height + header/summary/padding ≈ 700px total height
-        # Ensure 6-week months display consistently with smaller weekday headers
-        self.root.minsize(600, 700)
+        # Set minimum window size to accommodate the 2x2 grid layout
+        # Left column (statistics + info): 350px minimum + Right column (calendar): 500px minimum = 850px
+        # Top row (statistics + navigation): 250px + Bottom row (info + calendar): 350px = 600px
+        # Add padding and margin space: 850px + 50px = 900px width, 600px + 100px = 700px height
+        self.root.minsize(900, 700)
         
     def load_data(self):
         """
@@ -162,87 +161,29 @@ class CalendarApp:
             
     def create_widgets(self):
         """
-        Create the main UI components.
+        Create the main UI components using the new modular 2x2 grid layout.
         
         In tkinter, widgets are GUI elements (buttons, labels, etc.)
         Similar to creating controls in Win32 API or MFC
         """
         # Create main container frame with padding
         # Frame is like a panel or container - groups other widgets
-        main_frame = tk.Frame(self.root, padx=20, pady=20)  # padx/pady = internal padding
+        main_frame = tk.Frame(self.root, padx=10, pady=10)  # padx/pady = internal padding
         
         # Pack geometry manager arranges widgets in container
         # pack() is like adding to a vertical or horizontal layout
         main_frame.pack(fill=tk.BOTH, expand=True)  # fill entire window, expand when resized
         
-        # Title label widget (like static text control in Win32)
-        title_label = tk.Label(
-            main_frame,                    # parent widget
-            text="UK ILR Calendar App",    # displayed text
-            font=("Arial", 18, "bold")     # font tuple: (family, size, style)
+        # Grid layout manager - handles the 2x2 layout with ILR statistics and calendar
+        # Now uses the new modular architecture with self-contained modules
+        self.grid_layout = GridLayoutManager(
+            main_frame, 
+            config=self.config, 
+            timeline=self.timeline
         )
-
-        # Position with padding: (top, right, bottom, left) - like CSS
-        title_label.pack(pady=(0, 20))    # 0 pixels top, 20 pixels bottom
         
-        # Frame for data summary section
-        summary_frame = tk.Frame(main_frame)
-        summary_frame.pack(fill=tk.X, pady=10)     # fill horizontally, 10px vertical padding
-        
-        # Build summary text using f-string formatting
-        # This is like building a string with sprintf() in C
-        summary_text = f"""Data Summary:"""
-        summary_text += f"\n• {len(self.trips)} trips loaded"
-        summary_text += f"\n• {len(self.visaPeriods)} visa periods loaded"
-        
-        # Add configuration info if available
-        if self.config:                    # Check if config loaded successfully (not None)
-            summary_text += f"\n• Objective: {self.config.objective_years} years of residence"
-            summary_text += f"\n• First entry date: {self.config.first_entry_date}"
-            summary_text += f"\n• Target completion: {self.config.target_completion_date.strftime('%d-%m-%Y')}"
-        
-        # Create label to display summary text
-        summary_label = tk.Label(
-            summary_frame,
-            text=summary_text,
-            font=("Arial", 10),            # smaller font than title
-            justify=tk.LEFT,               # left-align text
-            anchor="w"                     # west anchor (left side)
-        )
-        summary_label.pack(fill=tk.X)      # fill horizontally
-        
-        # Status section at bottom
-        status_frame = tk.Frame(main_frame)
-        status_frame.pack(fill=tk.X, pady=(20, 0))  # 20px top padding, 0 bottom
-        
-        # Determine status message and color based on loaded data
-        status_text = "✓ Application loaded successfully"
-        text_color = "green"
-        
-        # Check if there were loading problems
-        if not self.config or len(self.trips) == 0:
-            status_text = "⚠ Some data files could not be loaded"
-            text_color = "orange"
-            
-        # Create status label with conditional color
-        status_label = tk.Label(
-            status_frame,
-            text=status_text,
-            font=("Arial", 9),
-            fg=text_color                  # foreground color (text color)
-        )
-        status_label.pack()
-        
-        # View manager - handles switching between month/year/day/stats views
-        # This provides a clean architecture for future view additions
-        self.view_manager = ViewManager(main_frame, config=self.config, timeline=self.timeline)
-        
-        # Start with month view
-        self.view_manager.show_month_view()
-        
-        # Set up day click callback for current view (will be handled by view manager in future)
-        if hasattr(self.view_manager.current_view, 'set_day_click_callback'):
-            self.view_manager.current_view.set_day_click_callback(self.day_clicked)
+        # Pack the grid layout to fill the entire main frame
+        self.grid_layout.pack(fill=tk.BOTH, expand=True)
         
     def day_clicked(self, clicked_date):
         """
