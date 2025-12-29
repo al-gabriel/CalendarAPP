@@ -159,7 +159,8 @@ class ILRStatisticsEngine:
                 calc_date
             )
         
-        # Calculate days since entry
+        # Calculate days since entry (inclusive of both start and end dates)
+        # Formula: (end_date - start_date).days + 1 to include both endpoints
         days_since_entry = max(0, (calc_date - self.config.first_entry_date_obj).days + 1)
         
         # Create progress objects for both scenarios (same requirement, different counting)

@@ -18,8 +18,6 @@
 
 ## 1.5. Key Definitions
 
-**Timeline Range:** 01-01-2023 to 31-12-2040 (18 years, fixed for v1)
-
 **Date Formats:**
 - JSON storage: DD-MM-YYYY (e.g., "29-03-2023")
 - User interface: DD-MM-YYYY consistently
@@ -153,30 +151,65 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Changing month and year within the 2023–2040 range.
   - Switching between month view and year view.
 
-### FR‑6: Statistics panels
+### FR‑6: Statistics panels and UI layout
 
-- **Month view stats:**
-  - For the displayed month only, show counts of all ILR metrics defined in **[Key Definitions](#15-key-definitions)**
-- **Year view stats:**
-  - For the displayed year only, show counts of all ILR metrics defined in **[Key Definitions](#15-key-definitions)**
-- **Global stats:**
-  - For the timeline range defined in **[Key Definitions](#15-key-definitions)**, show all ILR metrics since `first_entry_date`
-    - **Dual scenario tracking (regulatory uncertainty handling):**
-      - **In-UK scenario:** Conservative tracking assuming short trips don't count
-        - Current count: only pure UK residence days
-        - Target completion date: when UK residence reaches `ilr_target_days`
-        - Remaining days: days of UK residence still needed
-      - **Total scenario:** Optimistic tracking assuming short trips do count
-        - Current count: UK residence + short trips
-        - Target completion date: when total qualifying days reach `ilr_target_days`
-        - Remaining days: total qualifying days still needed
-      - **Note:** Both scenarios target the same `ilr_target_days` requirement
-  - The app should allow:
-    - Filtering global stats by visa period selection:
-      - "All periods" (default) - shows metrics across all visa periods
-      - Single period selection (e.g. "visa_1 only")  
-      - Multiple period selection (e.g. "visa_1 + visa_2")
-      - UI should provide checkboxes or dropdown for period selection
+- **Primary 2x2 Grid Layout:**
+  - **Top-left (Primary):** ILR Statistics Module - main focus panel with comprehensive ILR progress tracking
+  - **Top-right:** Calendar Component with integrated navigation controls
+  - **Bottom-left:** Day Information Module - details for selected day (initially empty/placeholder)
+  - **Bottom-right:** Reserved for future expansion (currently hidden)
+
+- **ILR Statistics Module (Top-left - Primary Panel):**
+  - **Configuration Section:**
+    - Objective years and buffer years from configuration
+    - Timeline range display
+    - First entry date and days since entry
+    - Key configuration parameters for user reference
+  - **Dual Scenario Tracking (regulatory uncertainty handling):**
+    - **UK Scenario (Conservative):** Only pure UK residence days count toward ILR
+      - Current count display with colored indicators
+      - Target completion date (clickable, highlights target day on calendar)
+      - Remaining days calculation
+      - Progress indicators and visual feedback
+    - **Total Scenario (Optimistic):** UK residence + short trips count toward ILR
+      - Current count display with colored indicators
+      - Target completion date (clickable, highlights target day on calendar)
+      - Remaining days calculation
+      - Progress indicators and visual feedback
+    - **Visual Design Requirements:**
+      - Yellow highlighting for UK scenario elements
+      - Orange highlighting for Total scenario elements
+      - Clear section separation and professional styling
+      - Target date buttons with raised appearance for interaction feedback
+      - Color-coded progress indicators for quick visual assessment
+  - **Statistics Display:**
+    - Current day counts for all classification types
+    - Progress percentages and visual indicators
+    - Time-to-completion estimates for both scenarios
+    - Leap year accurate calculations with proper date arithmetic
+
+- **Calendar Component (Top-right):**
+  - **Integrated Navigation Header:**
+    - Month/year navigation controls
+    - View switching (Month/Year views)
+    - Date selection and highlighting functionality
+  - **Calendar Display:**
+    - Month view with day-by-day classification coloring
+    - Year view support (placeholder implementation)
+    - Day selection and interaction capabilities
+    - Visual feedback for target dates from ILR statistics
+
+- **Day Information Module (Bottom-left):**
+  - Selected day details display
+  - Trip information when applicable
+  - Visa period information
+  - PDF association and opening functionality
+  - Currently placeholder implementation for future enhancement
+
+- **Month/Year Context Stats (Integrated into Calendar Component):**
+  - For displayed month/year: classification counts and metrics
+  - Contextual information relative to current calendar view
+  - Integration with main ILR statistics for consistency
 
 ### FR‑7: Day details and PDF association
 
@@ -241,6 +274,54 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 - All data entry is performed by:
   - Editing JSON files directly.
   - Placing PDFs in the correct folder with the correct filename pattern.
+
+### NFR‑UI‑3: Front-end Architecture and Design Requirements
+
+- **Modular Component Architecture:**
+  - Component-based UI system with clear separation of concerns
+  - Reusable components: NavigationHeader, CalendarComponent, StatisticsPanel
+  - Module-based approach: individual modules for different UI sections
+  - Callback-driven communication between components for loose coupling
+
+- **Grid Layout Management:**
+  - 2x2 grid layout managed by GridLayoutManager as main coordinator
+  - Dynamic module switching and view management
+  - Proper module lifecycle management and cleanup
+  - Module isolation: each module self-contained with clear interfaces
+
+- **Visual Design Standards:**
+  - **Color Coding System:**
+    - Day classifications: distinct colors for UK residence, short trips, long trips, pre-entry
+    - ILR scenario differentiation: yellow for UK scenario, orange for Total scenario
+    - Visual consistency across all components and modules
+  - **Interactive Elements:**
+    - Clickable target date buttons with raised styling and hover feedback
+    - Calendar day buttons with proper state management and visual feedback
+    - Navigation controls with clear visual hierarchy and usability
+  - **Typography and Layout:**
+    - Fixed header heights for consistency (height=1 for weekday headers)
+    - Professional spacing and alignment throughout interface
+    - Clear section separation with appropriate padding and margins
+    - Consistent font usage and sizing for information hierarchy
+
+- **Responsive Interaction Design:**
+  - Calendar navigation: month/year switching with smooth transitions
+  - Day selection: visual feedback and information updating
+  - Target date highlighting: calendar navigation from statistics to specific dates
+  - Error state handling: graceful degradation and user feedback
+
+- **Information Architecture:**
+  - **Primary Focus:** ILR statistics and progress tracking prominently displayed
+  - **Secondary Information:** Calendar navigation and day classification
+  - **Contextual Details:** Day-specific information available on demand
+  - **Configuration Transparency:** Key configuration parameters visible for user awareness
+  - **Progress Visualization:** Clear progress indicators and completion projections
+
+- **Module Communication Standards:**
+  - Callback-based event system for inter-module communication
+  - Standardized interfaces for module switching and state management
+  - Clean separation between UI state and business logic
+  - Consistent error handling and validation across all modules
 
 ### NFR‑PERF‑1: Performance
 
@@ -366,35 +447,71 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
     - `timeline.py`: DateTimeline class for day-by-day timeline management
     - `trips.py`: TripClassifier for trip-based logic
     - `visaPeriods.py`: VisaClassifier for visa period logic
-    - `ilr_statistics.py`: ILRStatisticsEngine for ILR business logic
+    - `ilr_statistics.py`: ILRStatisticsEngine for ILR business logic and completion projections
   - UI architecture:
-    - `ui/views/`: View classes (MonthView, BaseCalendarView, ViewManager)
-    - `ui/components/`: Reusable UI components (NavigationHeader, StatisticsPanel)
+    - `ui/grid_layout_manager.py`: Main coordinator for 2x2 grid layout
+    - `ui/components/`: Reusable UI components
+      - `calendar_component.py`: Calendar display with integrated navigation
+      - `navigation_header.py`: Reusable navigation controls for date/view switching  
+      - `statistics_panel.py`: (deprecated - functionality moved to modules)
+      - `month_year_info_panel.py`: (deprecated - functionality moved to modules)
+    - `ui/modules/`: Self-contained UI modules for grid sections
+      - `ilr_statistics_module.py`: Primary ILR progress tracking panel (top-left)
+      - `calendar_month_module.py`: Month calendar grid with day classification
+      - `calendar_year_module.py`: Year view implementation (placeholder)
+      - `day_info_module.py`: Day details display (placeholder) 
+      - `month_info_module.py`: Month context information (placeholder)
+      - `year_info_module.py`: Year context information (placeholder)
   - Each module has single responsibility principle
-  - Clear separation of concerns between data classification and business logic
+  - Clear separation of concerns between data classification, business logic, and UI presentation
 
-- **AR-5.2: Test Code Separation**
+- **AR-5.2: Component-Based UI Architecture**
+  - **GridLayoutManager** serves as main coordinator:
+    - Manages 2x2 grid layout with module switching capabilities
+    - Coordinates inter-module communication through callbacks
+    - Handles module lifecycle (creation, switching, cleanup)
+    - Provides centralized callback management for date selection and navigation
+  - **CalendarComponent** combines navigation and calendar display:
+    - Integrates NavigationHeader for date/view switching controls
+    - Manages calendar module switching (month/year views)
+    - Provides callbacks for date selection and target highlighting
+    - Self-contained unit for right side of grid layout
+  - **Module Architecture:**
+    - Each module is self-contained with clear interface contracts
+    - Modules accept callbacks for communication with other components
+    - Standardized module creation and switching patterns
+    - Support for both active and placeholder module implementations
+  - **Callback Communication System:**
+    - `on_day_selected`: Day selection events from calendar to info modules
+    - `highlight_date`: Target date highlighting from statistics to calendar
+    - `switch_to_date`: Navigation requests for month/year switching
+    - Clean separation between UI events and business logic responses
+
+- **AR-5.3: Test Code Separation**
   - Test code must be in separate files matching pattern `test_*.py`:
     - `test_day.py`: Tests for Day class and DayClassification
     - `test_timeline.py`: Tests for DateTimeline functionality
     - `test_trips.py`: Tests for TripClassifier functionality
     - `test_visaPeriods.py`: Tests for VisaClassifier functionality
+    - `test_ilr_requirement.py`: Tests for ILR statistics and completion calculations
   - Production modules must not contain test functions or main blocks for testing
   - Debug functionality must be controlled by explicit debug flags, not mixed with production code
 
-- **AR-5.3: Import Structure and Architecture**
+- **AR-5.4: Import Structure and Current Architecture**
   - Standard Python imports used throughout: `from calendar_app.config import AppConfig`
   - Clear module hierarchy: model layer imports from config layer
   - No circular dependencies between modules
-  - Component-based UI architecture:
-    - ViewManager handles view switching and lifecycle
-    - BaseCalendarView provides common view functionality
-    - NavigationHeader extracted as reusable component
+  - Current modular UI architecture:
+    - GridLayoutManager handles overall layout coordination and module switching
+    - CalendarComponent provides integrated calendar display with navigation
+    - NavigationHeader extracted as reusable component across different contexts
+    - Module-based approach for different UI sections with clean interfaces
   - Separation of concerns:
     - Timeline handles data classification only
-    - ILRStatisticsEngine handles all ILR business logic
+    - ILRStatisticsEngine handles all ILR business logic and completion projections
     - TripClassifier focuses on trip-related functionality only
     - DateTimeline handles day classification using trip data
+    - UI modules focus on presentation with business logic accessed through engines
 
 
 ### AR-6: Error Handling and Validation
@@ -434,52 +551,77 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Debug information available on demand but not by default
   - Validation warnings acceptable in debug mode, silent in production
 
-### AR-9: Component-Based UI Architecture
+### AR-9: Dynamic ILR Calculation Requirements
 
-- **AR-9.1: View Management System**
-  - `ViewManager` class handles view switching and lifecycle management
-  - `BaseCalendarView` provides common functionality for all calendar views
-  - View types managed through `ViewType` enum for type safety
-  - Clear separation between view logic and data processing
-
-- **AR-9.2: Component Reusability**
-  - `NavigationHeader` extracted as reusable component across views
-  - `StatisticsPanel` designed as self-contained component
-  - Components accept required dependencies through constructor injection
-  - No direct UI framework dependencies in business logic classes
-
-- **AR-9.3: Business Logic Separation**
-  - Timeline handles pure data classification without ILR business logic
-  - ILRStatisticsEngine contains all ILR-specific calculations and projections
-  - Clean interfaces between UI components and business logic
-  - Dual scenario support (In-UK vs Total) implemented at business logic level
-
-### AR-10: Dynamic ILR Calculation Requirements
-
-- **AR-10.1: Leap Year Accurate Calculations**
+- **AR-9.1: Leap Year Accurate Calculations**
   - ILR requirement calculated dynamically from `objective_years` configuration
   - Accounts for actual leap years in the target period from `first_entry_date`
   - No hardcoded day requirements - adapts to any objective timeframe
   - Proper date arithmetic ensuring accuracy across leap year boundaries
 
-- **AR-10.2: Dual Scenario Architecture**
-  - In-UK scenario: Conservative tracking (only UK residence days count)
+- **AR-9.2: Dual Scenario Architecture**
+  - UK scenario: Conservative tracking (only UK residence days count)
   - Total scenario: Optimistic tracking (UK residence + short trips count)
   - Both scenarios use identical target requirement with different counting rules
   - Completion date projections account for scenario-specific implications
+  - Visual differentiation in UI (yellow for UK scenario, orange for Total scenario)
+  
+- **AR-9.3: Statistics Engine Integration**
+  - ILRStatisticsEngine provides centralized calculations for all ILR metrics
+  - Timeline provides raw day classification data without ILR-specific business logic
+  - Clean separation between day classification (Timeline) and ILR calculations (Statistics Engine)
+  - Completion date projections with proper leap year handling and future date validation
   
 ## 6. MVP scope
 
 The minimum viable product (MVP) for this app includes:
 
-- JSON‑based storage of config, visa periods, and trips.
-- Core ILR day counting logic:
-  - Short vs long trips based on 14‑day threshold.
-  - ILR‑counted days vs non‑counted days starting from `first_entry_date`.
-- Month and year calendar views within 2023–2040:
-  - Day classifications.
-  - Month/year/global statistics panels.
-- Day click:
-  - Trip details.
-  - PDF association and open functionality.
-- Local‑only, read‑only GUI.
+- **Data Management:**
+  - JSON‑based storage of config, visa periods, and trips
+  - Automatic data refresh and validation with file modification detection
+  - Configuration-driven timeline generation and business rule application
+
+- **Core ILR Logic:**
+  - ILR day counting logic with dual scenario support (UK vs Total scenarios)
+  - Short vs long trips based on 14‑day threshold
+  - ILR‑counted days vs non‑counted days starting from `first_entry_date`
+  - Dynamic target calculation with leap year accuracy
+  - Completion date projections for both conservative and optimistic scenarios
+
+- **Primary UI (2x2 Grid Layout):**
+  - **ILR Statistics Module (Primary Focus):** Comprehensive progress tracking with:
+    - Configuration information display
+    - Dual scenario progress with color coding (yellow/orange)
+    - Clickable target completion dates
+    - Progress indicators and remaining days calculations
+  - **Calendar Component:** Month view with integrated navigation:
+    - Day classifications with color coding
+    - Interactive navigation header
+    - Day selection and highlighting capabilities
+    - Target date highlighting from statistics module
+  - **Day Information Module:** Selected day details (placeholder implementation)
+  - **Modular Architecture:** Clean component separation with callback communication
+
+- **Calendar Views:**
+  - Month calendar view within 2023–2040 range with day classifications
+  - Year view framework (placeholder implementation for future enhancement)
+  - Context-aware statistics for displayed month/year periods
+
+- **Interactive Features:**
+  - Day click functionality for trip details
+  - PDF association and system opening functionality  
+  - Calendar navigation from statistics target dates
+  - Visual feedback for user interactions
+
+- **Technical Implementation:**
+  - Local‑only, read‑only GUI using tkinter
+  - Modular component architecture with clear separation of concerns
+  - Configuration-driven design with external JSON parameter storage
+  - Professional visual design with consistent color coding and styling
+
+**Current Implementation Status:**
+- ✅ Complete: Core data models, ILR statistics engine, timeline management
+- ✅ Complete: Primary UI layout with ILR statistics focus and calendar navigation
+- ✅ Complete: Month view calendar with day classification and interaction
+- 🔄 Placeholder: Year view, day details, and advanced PDF integration (ready for future enhancement)
+- ✅ Complete: Modular architecture supporting easy feature extension

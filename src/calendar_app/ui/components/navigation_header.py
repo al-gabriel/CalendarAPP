@@ -50,7 +50,9 @@ class NavigationHeader:
         # Callback functions (to be set by parent view)
         self.on_date_changed: Optional[Callable] = None
         self.on_first_entry_clicked: Optional[Callable] = None
-        self.on_target_date_clicked: Optional[Callable] = None
+        self.on_uk_target_clicked: Optional[Callable] = None
+        self.on_total_target_clicked: Optional[Callable] = None
+        self.on_today_clicked: Optional[Callable] = None
         self.on_prev_month: Optional[Callable] = None
         self.on_next_month: Optional[Callable] = None
         self.on_prev_year: Optional[Callable] = None
@@ -65,7 +67,9 @@ class NavigationHeader:
         
         # Navigation buttons
         self.jump_to_first_entry_button = None
-        self.jump_to_objective_button = None
+        self.today_button = None
+        self.uk_target_button = None
+        self.total_target_button = None
         self.prev_year_button = None
         self.prev_month_button = None
         self.next_month_button = None
@@ -101,17 +105,17 @@ class NavigationHeader:
             text="◀ First Entry",
             command=self._on_first_entry_clicked,
             bg="#28a745",
-            fg="white",
+            fg="Black",
             font=("Arial", 8, "bold"),
             relief="raised",
             bd=2,
             height=1
         )
-        self.jump_to_first_entry_button.grid(row=0, column=0, sticky="ew", padx=2, pady=[1,0])
+        self.jump_to_first_entry_button.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
         
         # Cell 0,1: Month and Year dropdowns (centered)
         center_frame = tk.Frame(self.header_frame, bg="white")
-        center_frame.grid(row=0, column=1, padx=10, pady=[1,0])
+        center_frame.grid(row=0, column=1, padx=10, pady=0)
         
         center_content = tk.Frame(center_frame, bg="white")
         center_content.pack(expand=True)
@@ -142,86 +146,113 @@ class NavigationHeader:
         self.year_dropdown.pack(side=tk.LEFT, padx=5)
         self.year_dropdown.bind("<<ComboboxSelected>>", self._on_year_changed)
         
-        # Cell 0,2: Target Date button
-        self.jump_to_objective_button = tk.Button(
-            self.header_frame,
-            text="Target Date ▶",
-            command=self._on_target_date_clicked,
-            bg="#ffd700",
-            fg="black",
+        # Cell 0,2: Target scenario buttons
+        target_frame = tk.Frame(self.header_frame, bg="white")
+        target_frame.grid(row=0, column=2, sticky="ew", padx=0, pady=0)
+        
+        # UK scenario target button (goldenrod)
+        self.uk_target_button = tk.Button(
+            target_frame,
+            text="▶▶",
+            command=self._on_uk_target_clicked,
+            bg="goldenrod",
+            fg="Black",
             font=("Arial", 8, "bold"),
             relief="raised",
             bd=2,
             height=1
         )
-        self.jump_to_objective_button.grid(row=0, column=2, sticky="ew", padx=2, pady=[1,0])
+        self.uk_target_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(1,0))
+
+        # Total scenario target button (darkorange)
+        self.total_target_button = tk.Button(
+            target_frame,
+            text="▶",
+            command=self._on_total_target_clicked,
+            bg="darkorange",
+            fg="Black",
+            font=("Arial", 8),
+            relief="raised",
+            bd=2,
+            height=1
+        )
+        self.total_target_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(0,1))
     
     def create_row_1(self):
         """Create bottom row: navigation arrow buttons."""
         # Cell 1,0: Previous navigation
         left_nav = tk.Frame(self.header_frame, bg="white")
-        left_nav.grid(row=1, column=0, sticky="ew", padx=2, pady=[1,1])
+        left_nav.grid(row=1, column=0, sticky="ew", padx=0, pady=1)
         
         self.prev_year_button = tk.Button(
             left_nav,
             text="◀◀",
             command=self._on_prev_year,
             bg="#ff6b6b",
-            fg="white",
+            fg="Black",
             font=("Arial", 8, "bold"),
             relief="raised",
             bd=2,
-            width=3,
             height=1
         )
-        self.prev_year_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        self.prev_year_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0,1))
         
         self.prev_month_button = tk.Button(
             left_nav,
             text="◀",
             command=self._on_prev_month,
             bg="#4dabf7",
-            fg="white",
+            fg="Black",
             font=("Arial", 8),
             relief="raised",
             bd=2,
-            width=3,
             height=1
         )
-        self.prev_month_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        self.prev_month_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(1,0))
         
-        # Cell 1,1: Empty (center space)
-        # Cell 1,2: Next navigation
+        # Cell 1,1: Today button (center)
+        self.today_button = tk.Button(
+            self.header_frame,
+            text="Today",
+            command=self._on_today_clicked,
+            bg="#ffffff",
+            fg="Black",
+            font=("Arial", 8, "bold"),
+            relief="raised",
+            bd=2,
+            height=1
+        )
+        self.today_button.grid(row=1, column=1, padx=20, pady=1)
+        
+        # Cell 1,2: Next navigation (restored original layout)
         right_nav = tk.Frame(self.header_frame, bg="white")
-        right_nav.grid(row=1, column=2, sticky="ew", padx=2, pady=[1,1])
-        
-        self.next_month_button = tk.Button(
-            right_nav,
-            text="▶",
-            command=self._on_next_month,
-            bg="#4dabf7",
-            fg="white",
-            font=("Arial", 8),
-            relief="raised",
-            bd=2,
-            width=3,
-            height=1
-        )
-        self.next_month_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=1)
+        right_nav.grid(row=1, column=2, sticky="ew", padx=0, pady=1)
         
         self.next_year_button = tk.Button(
             right_nav,
             text="▶▶",
             command=self._on_next_year,
             bg="#ff6b6b",
-            fg="white",
+            fg="Black",
             font=("Arial", 8, "bold"),
             relief="raised",
             bd=2,
-            width=3,
             height=1
         )
-        self.next_year_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=1)
+        self.next_year_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(1,0))
+        
+        self.next_month_button = tk.Button(
+            right_nav,
+            text="▶",
+            command=self._on_next_month,
+            bg="#4dabf7",
+            fg="Black",
+            font=("Arial", 8),
+            relief="raised",
+            bd=2,
+            height=1
+        )
+        self.next_month_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(0,1))
     
     def set_current_date(self, new_date: date):
         """Update the current date and refresh display."""
@@ -288,10 +319,20 @@ class NavigationHeader:
         if self.on_first_entry_clicked:
             self.on_first_entry_clicked()
     
-    def _on_target_date_clicked(self):
-        """Handle target date button click."""
-        if self.on_target_date_clicked:
-            self.on_target_date_clicked()
+    def _on_today_clicked(self):
+        """Handle today button click."""
+        if self.on_today_clicked:
+            self.on_today_clicked()
+    
+    def _on_uk_target_clicked(self):
+        """Handle UK scenario target button click."""
+        if self.on_uk_target_clicked:
+            self.on_uk_target_clicked()
+    
+    def _on_total_target_clicked(self):
+        """Handle total scenario target button click."""
+        if self.on_total_target_clicked:
+            self.on_total_target_clicked()
     
     def _on_prev_month(self):
         """Handle previous month button."""

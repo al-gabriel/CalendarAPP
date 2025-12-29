@@ -64,7 +64,7 @@ S  - Full classification integration with counting and querying methods
   - Month/Year/Global statistics calculations with progress tracking
   - **Test:** Verify statistics match manual calculations
 
-- [ ] **Statistics UI Panel**
+- [X] **Statistics UI Panel**
   - `ui/components/statistics_panel.py` - display statistics component  
   - Show both ILR scenarios (in-UK vs total) with completion dates
   - Target completion dates and remaining days for each scenario
@@ -126,7 +126,7 @@ S  - Full classification integration with counting and querying methods
 By end of Day 3, the app must:
 - [X] Load and display your real ILR data accurately
 - [X] Show visually distinct day classifications
-- [ ] Calculate correct ILR progress statistics
+- [X] Calculate correct ILR progress statistics
 - [ ] Provide both month and year calendar views
 - [ ] Support day-click interactions with trip details
 - [ ] Open your travel PDFs externally
