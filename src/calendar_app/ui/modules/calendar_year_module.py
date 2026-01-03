@@ -62,6 +62,12 @@ class CalendarYearModule(tk.Frame):
         except ImportError:
             self.CLASSIFICATION_COLORS = {}
         
+        # Visa border colors for visa period boundaries
+        self.VISA_BORDER_COLORS = {
+            'start': '#cc99ff',  # Light purple (for visa start dates)
+            'end': '#800080'     # Dark purple (for visa end dates)
+        }
+        
         # Get first entry date from config (already parsed)
         self.first_entry_date = None
         if config and hasattr(config, 'first_entry_date_obj'):
@@ -247,7 +253,16 @@ class CalendarYearModule(tk.Frame):
                     self.day_buttons[month_num][day_date.day] = day_button
     
     def _apply_special_day_styling(self, button: tk.Button, button_date: date, bg_color: str, text_color: str):
-        """Apply special styling for target dates and today's date (similar to month view)."""
+        """Apply special styling for target dates, today's date, and visa background colors (similar to month view)."""
+        # Check for visa period start/end dates - override background color
+        if self.timeline:
+            visa_border = self.timeline.get_visa_border_info(button_date)
+            if visa_border['is_visa_start']:
+                bg_color = self.VISA_BORDER_COLORS['start']  # Light purple
+            elif visa_border['is_visa_end']:
+                bg_color = self.VISA_BORDER_COLORS['end']    # Dark purple
+                text_color = "white"  # White text for better contrast on dark purple
+        
         # Special date highlighting - target completion dates
         is_target_date = button_date in self.target_dates
         target_info = self.target_dates.get(button_date)
@@ -258,10 +273,10 @@ class CalendarYearModule(tk.Frame):
             button.config(bg=target_color, fg="black", highlightbackground=target_color,
                          highlightcolor=target_color, highlightthickness=2, font=("Arial", 7, "bold"))
         elif button_date == date.today():
-            # Today - red bold text with normal classification background
+            # Today - red bold text with background (could be visa color or classification color)
             button.config(bg=bg_color, fg="red", font=("Arial", 7, "bold"))
         else:
-            # Normal day - use default colors
+            # Normal day - use background color (could be visa color or classification color)
             button.config(bg=bg_color, fg=text_color, font=("Arial", 7))
     
     def create_all_month_frames(self):

@@ -58,6 +58,12 @@ class CalendarMonthModule(tk.Frame):
         except ImportError:
             self.CLASSIFICATION_COLORS = {}
         
+        # Visa border colors for visa period boundaries
+        self.VISA_BORDER_COLORS = {
+            'start': '#cc99ff',  # Light purple (for visa start dates)
+            'end': '#800080'     # Dark purple (for visa end dates)
+        }
+        
         # Get first entry date from config (already parsed)
         self.first_entry_date = None
         if config and hasattr(config, 'first_entry_date_obj'):
@@ -203,6 +209,15 @@ class CalendarMonthModule(tk.Frame):
             if day and day.classification in self.CLASSIFICATION_COLORS:
                 default_color = self.CLASSIFICATION_COLORS[day.classification]
         
+        # Check for visa period start/end dates - override background color
+        if self.timeline:
+            visa_border = self.timeline.get_visa_border_info(button_date)
+            if visa_border['is_visa_start']:
+                default_color = self.VISA_BORDER_COLORS['start']  # Light purple
+            elif visa_border['is_visa_end']:
+                default_color = self.VISA_BORDER_COLORS['end']    # Dark purple
+                text_color = "white"  # White text for better contrast on dark purple
+        
         # Special date highlighting
         is_target_date = button_date in self.target_dates
         target_info = self.target_dates.get(button_date)
@@ -213,10 +228,10 @@ class CalendarMonthModule(tk.Frame):
             button.config(bg=target_color, fg="black", highlightbackground=target_color,
                          highlightcolor=target_color, highlightthickness=3, font=("Arial", 9, "bold"))
         elif button_date == date.today():
-            # Today - red bold text with normal classification background
+            # Today - red bold text with background (could be visa color or classification color)
             button.config(bg=default_color, fg="red", font=("Arial", 9, "bold"))
         else:
-            # Normal day (removed selected date highlighting)
+            # Normal day - use background color (could be visa color or classification color)
             button.config(bg=default_color, fg=text_color)
         
         # Disable future dates beyond timeline
