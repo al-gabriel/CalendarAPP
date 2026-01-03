@@ -28,9 +28,10 @@
 - **Long trip:** ≥14 days duration - days spent abroad, do not count toward any ILR metrics
 
 **ILR Day Metrics:**
-- **ILR in-UK days:** Pure UK residence days (no trips)
+- **ILR in-UK days:** Pure UK residence days (no trips, with proper visa coverage)
 - **Short trip days:** Days on trips <14 days (abroad but count toward ILR)
-- **ILR total days:** Sum of ILR in-UK days + short trip days
+- **Days without visa coverage:** UK residence days not covered by visa periods (count toward ILR but tracked separately)
+- **ILR total days:** Sum of ILR in-UK days + short trip days + days without visa coverage
 - **Long trip days:** Days on trips ≥14 days (abroad, do not count toward ILR)
 
 **ILR Counting Rules:**
@@ -97,7 +98,8 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 
 - The app must compute ILR‑counted days only for dates on or after `first_entry_date`.
 - For ILR‑style progress, days are classified and counted using the metrics defined in **[Key Definitions](#15-key-definitions)**:
-  - Days that are not part of any trip and are ≥ `first_entry_date` are counted as **ILR in‑UK days**.
+  - Days that are not part of any trip and are ≥ `first_entry_date` and covered by visa periods are counted as **ILR in‑UK days**.
+  - Days that are not part of any trip and are ≥ `first_entry_date` but **not covered by any visa period** are counted as **days without visa coverage** (count toward ILR total but tracked separately for visa planning).
   - Days belonging to a **short trip** and ≥ `first_entry_date`:
     - Are counted separately as **short trip days**.
     - Do **not** contribute to "ILR in‑UK days".
@@ -109,9 +111,10 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Target end date when `ilr_target_days` will be reached.
   - Remaining days to reach `ilr_target_days`.
 - The application must calculate, over the fixed 2023–2040 range:
-  - Total ILR in‑UK days (from `first_entry_date` onwards).
+  - Total ILR in‑UK days (from `first_entry_date` onwards, with visa coverage).
   - Total short trip days.
-  - Total ILR total days (sum of above two).
+  - Total days without visa coverage (from `first_entry_date` onwards, UK residence but no visa).
+  - Total ILR total days (sum of above three - all days that count toward ILR).
   - Total long trip days.
   - Target completion dates and remaining days for both ILR scenarios:
     - **In-UK scenario:** Based on pure UK residence days only (conservative estimate)
@@ -128,10 +131,13 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 - The application must:
   - Store multiple visa periods, including the two given examples.
   - Determine which visa period a given date belongs to (or none).
+  - **Visa Coverage Validation:** Identify UK residence days not covered by any visa period
+  - **Visual Indicators:** Display visa period start/end days with distinct colors in calendar views
   - Be able to:
-    - Highlight the currently active visa period based on today’s date.
+    - Highlight the currently active visa period based on today's date.
     - Compute ILR‑counted days and absence metrics per visa period.
-    - Show days remaining until the current visa’s `end_date`.
+    - Show days remaining until the current visa's `end_date`.
+    - **Track days without visa coverage** separately for visa requirement planning while still counting them toward ILR totals
 
 ### FR‑5: Calendar views (month and year)
 
@@ -139,8 +145,10 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - **Month view**:
     - Shows a standard calendar grid for a single month between 2023 and 2040.
   - **Year view**:
-    - Shows a 12-month grid (3x4 or 4x3 layout) for a selected year between 2023 and 2040.
+    - Shows a 12-month grid (3x4 layout) for a selected year between 2023 and 2040.
+    - **Layout:** Uses whole column 2 of 2x2 grid (cells 2x2 and 1x2) for year calendar display
     - Each month shows a mini-calendar with day classifications visible.
+    - **Implementation:** Full implementation in `calendar_year_module.py` similar to `calendar_month_module.py`
 - In both views, each day must be visually marked according to its classification:
   - In UK – normal residence.
   - Abroad – short trip day (counts toward ILR total).
@@ -201,10 +209,13 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 
 - **Day Information Module (Bottom-left):**
   - Selected day details display
-  - Trip information when applicable
+  - Trip information when applicable:
+    - **PDF Access:** "View" buttons for outbound/inbound flights to open associated PDFs
+    - **PDF Integration:** Same PDF opens for both flights if they share same document
+    - External PDF opening via `os.startfile()` functionality
   - Visa period information
-  - PDF association and opening functionality
-  - Currently placeholder implementation for future enhancement
+  - PDF association and opening functionality integrated into day details interface
+  - Rich trip details with complete flight route information
 
 - **Month/Year Context Stats (Integrated into Calendar Component):**
   - For displayed month/year: classification counts and metrics
@@ -291,8 +302,9 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
 
 - **Visual Design Standards:**
   - **Color Coding System:**
-    - Day classifications: distinct colors for UK residence, short trips, long trips, pre-entry
+    - Day classifications: distinct colors for UK residence, short trips, long trips, pre-entry, days without visa coverage (light red)
     - ILR scenario differentiation: yellow for UK scenario, orange for Total scenario
+    - **Visa period indicators:** Distinct colors for visa period start/end days
     - Visual consistency across all components and modules
   - **Interactive Elements:**
     - Clickable target date buttons with raised styling and hover feedback
@@ -378,8 +390,10 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
     - `SHORT_TRIP`: Day during short trip (<14 days) - counts toward ILR total
     - `LONG_TRIP`: Day during long trip (≥14 days) - does not count toward ILR
     - `PRE_ENTRY`: Before first UK entry date
+    - `NO_VISA_COVERAGE`: UK residence day not covered by any visa period - **counts toward ILR but tracked separately for visa requirement planning**
     - `UNKNOWN`: Classification not yet determined
   - All days must eventually be classified (no `UNKNOWN` days in production)
+  - Days with `NO_VISA_COVERAGE` count toward ILR totals but must be tracked as a separate metric for visa planning
 
 - **AR-2.3: ILR Business Rules Integration**
   - Business rules are defined authoritatively in **[Key Definitions](#15-key-definitions)** and **[FR-3](#fr3-ilr-day-counting-logic)**
@@ -619,9 +633,3 @@ The minimum viable product (MVP) for this app includes:
   - Configuration-driven design with external JSON parameter storage
   - Professional visual design with consistent color coding and styling
 
-**Current Implementation Status:**
-- ✅ Complete: Core data models, ILR statistics engine, timeline management
-- ✅ Complete: Primary UI layout with ILR statistics focus and calendar navigation
-- ✅ Complete: Month view calendar with day classification and interaction
-- 🔄 Placeholder: Year view, day details, and advanced PDF integration (ready for future enhancement)
-- ✅ Complete: Modular architecture supporting easy feature extension

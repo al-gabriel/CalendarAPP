@@ -86,38 +86,37 @@ S  - Full classification integration with counting and querying methods
 **Goal:** Production-ready app with all MVP features
 
 ### Morning Session (2-3 hours)
-- [ ] **Complete Day Details**
-  - Enhanced day popup with full trip information
-  - Trip type (short/long), airports, departure/return dates
-  - Visa period information for each day
-  - **Test:** Rich day details match your trip data
+- [X] **New Day Classification: Days Without Visa Coverage** ⚠️ *CRITICAL ADDITION*
+  - Add `NO_VISA_COVERAGE` classification to `day.py` for UK residence days not covered by any visa period
+  - These days **count toward ILR totals** but are **tracked separately for visa requirement planning**
+  - Update throughout project: ILR statistics engine, calendar view (light red color)
+  - **Test:** Days without visa coverage properly included in ILR counts but tracked as separate metric
 
-- [ ] **Year View**
-  - `ui/calendar_view.py` - add year view mode
-  - 12-month mini-calendar grid (3x4 layout)
-  - Month/Year view toggle buttons
-  - **Test:** Switch between month and year views smoothly
+- [ ] **Year View Implementation**
+  - Implement full `calendar_year_module.py` using whole column 2 (cells 2x2 and 1x2 in 2x2 grid)
+  - 12-month mini-calendar grid (3x4 layout) similar to `calendar_month_module.py`
+  - Month/Year view toggle integration with existing navigation
+  - **Test:** Switch between month and year views smoothly with proper day classifications
+
+- [ ] **Visa Period Visual Integration**
+  - Add different colors for visa period start/end days in calendar views
+  - Integrate visa coverage validation with new day classification
+  - **Test:** Visa periods clearly visible in both month and year views
 
 ### Afternoon Session (2-3 hours)
-- [ ] **Global Statistics & Filtering**
-  - Global statistics panel (full 2023-2040 range)
-  - Visa period filtering (checkboxes for multiple selection)
-  - Dual scenario tracking (in-UK vs total scenarios)
-  - **Test:** Filter statistics by different visa combinations
-
-- [ ] **PDF Integration**
-  - `storage/pdf_index.py` - filename pattern matching
-  - External PDF opening via `os.startfile()`
-  - List matching PDFs for trip days
-  - **Test:** Click trip day opens correct PDF files
+- [ ] **PDF Integration in Day Info Module**
+  - Implement "View" buttons in `day_info_module.py` for specific outbound/inbound flights
+  - Create `storage/pdf_index.py` for filename pattern matching
+  - External PDF opening via `os.startfile()` - same PDF opens for both flights if they share same document
+  - **Test:** Click "View" button on trip day opens correct PDF files
 
 ### Evening Session (1-2 hours)
-- [ ] **Final Polish**
-  - Refresh button to reload JSON files
+- [ ] **Data Refresh System**
+  - Add "Refresh" button to main UI (likely in navigation header)
+  - Implement JSON file reload functionality without app restart
+  - Recreate all data objects (TripClassifier, DateTimeline, ILRStatisticsEngine)
   - Last refresh timestamp display
-  - Error messages for missing files
-  - Window sizing and layout improvements
-  - **Test:** Complete user workflow (edit JSON → refresh → view changes)
+  - **Test:** Edit JSON files → click refresh → see changes immediately
 
 **Day 3 Deliverable:** Complete, production-ready Calendar App v1.0
 
@@ -128,9 +127,11 @@ By end of Day 3, the app must:
 - [X] Load and display your real ILR data accurately
 - [X] Show visually distinct day classifications
 - [X] Calculate correct ILR progress statistics
+- [X] Support day-click interactions with trip details ✅ *ENHANCED - Complete day info module*
+- [X] Handle days without visa coverage (new classification)
 - [ ] Provide both month and year calendar views
-- [ ] Support day-click interactions with trip details
-- [ ] Open your travel PDFs externally
+- [ ] Show visa period boundaries in calendar
+- [ ] Open your travel PDFs externally from day details
 - [ ] Handle data refresh without restart
 - [ ] Work reliably for daily use
 

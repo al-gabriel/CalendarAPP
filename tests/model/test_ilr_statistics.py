@@ -79,16 +79,44 @@ class MockVisaClassifier:
         return target_date in self._mock_visaPeriod_periods
     
     def get_visaPeriod_summary(self, target_date):
-        return {
-            'has_visaPeriod': False,
-            'visaPeriod_id': None,
-            'visaPeriod_label': None,
-            'start_date': None,
-            'end_date': None,
-            'gross_salary': None,
-            'days_in_period': None,
-            'day_number_in_period': None
-        }
+        if target_date in self._mock_visaPeriod_periods:
+            visa_info = self._mock_visaPeriod_periods[target_date]
+            return {
+                'has_visaPeriod': True,
+                'visaPeriod_id': visa_info['visaPeriod_id'],
+                'visaPeriod_label': visa_info['visaPeriod_label'],
+                'start_date': visa_info['start_date'],
+                'end_date': visa_info['end_date'],
+                'gross_salary': visa_info['gross_salary'],
+                'days_in_period': (visa_info['end_date'] - visa_info['start_date']).days + 1,
+                'day_number_in_period': (target_date - visa_info['start_date']).days + 1
+            }
+        else:
+            return {
+                'has_visaPeriod': False,
+                'visaPeriod_id': None,
+                'visaPeriod_label': None,
+                'start_date': None,
+                'end_date': None,
+                'gross_salary': None,
+                'days_in_period': None,
+                'day_number_in_period': None
+            }
+    
+    def add_mock_visaPeriod(self, start_date, end_date, visaPeriod_id="mock_visa", salary="£30000.00"):
+        """Add a mock visa period for testing"""
+        from datetime import timedelta
+        current_date = start_date
+        
+        while current_date <= end_date:
+            self._mock_visaPeriod_periods[current_date] = {
+                'visaPeriod_id': visaPeriod_id,
+                'visaPeriod_label': f'Mock Visa {visaPeriod_id}',
+                'start_date': start_date,
+                'end_date': end_date,
+                'gross_salary': salary
+            }
+            current_date += timedelta(days=1)
 
 
 def create_test_timeline_with_classifications(config):
@@ -196,16 +224,17 @@ def test_ilr_counting_methods():
     
     # Test get_ilr_counts_total
     total_counts = ilr_engine.get_ilr_counts_total()
-    required_keys = ['ilr_in_uk_days', 'short_trip_days', 'ilr_total_days', 'long_trip_days', 'pre_entry_days']
+    required_keys = ['ilr_in_uk_days', 'short_trip_days', 'ilr_total_days', 'long_trip_days', 'pre_entry_days', 'no_visa_coverage_days']
     for key in required_keys:
         assert key in total_counts, f"Missing key: {key}"
         assert isinstance(total_counts[key], int), f"{key} should be integer"
     
-    # Verify logical consistency
-    assert total_counts['ilr_total_days'] == total_counts['ilr_in_uk_days'] + total_counts['short_trip_days']
+    # Verify logical consistency - no_visa_coverage_days should be included in ilr_total_days
+    expected_total = total_counts['ilr_in_uk_days'] + total_counts['short_trip_days'] + total_counts['no_visa_coverage_days']
+    assert total_counts['ilr_total_days'] == expected_total, f"ilr_total_days ({total_counts['ilr_total_days']}) should equal sum of components ({expected_total})"
     assert total_counts['short_trip_days'] > 0  # We added short trips
     assert total_counts['long_trip_days'] > 0   # We added long trips
-    print("✓ get_ilr_counts_total() works correctly")
+    print(f"✓ get_ilr_counts_total() works correctly (includes {total_counts['no_visa_coverage_days']} no_visa_coverage_days)")
     
     # Test get_ilr_counts_for_month (June 2023)
     june_counts = ilr_engine.get_ilr_counts_for_month(2023, 6)
@@ -467,13 +496,120 @@ def test_data_class_properties():
     assert hasattr(stats, 'ilr_total_days')
     assert hasattr(stats, 'long_trip_days')
     assert hasattr(stats, 'pre_entry_days')
+    assert hasattr(stats, 'no_visa_coverage_days')
     assert hasattr(stats, 'in_uk_scenario')
     assert hasattr(stats, 'total_scenario')
     assert hasattr(stats, 'calculation_date')
     assert hasattr(stats, 'first_entry_date')
     assert hasattr(stats, 'days_since_entry')
-    print("✓ ILRStatistics structure complete")
+    print("✓ ILRStatistics structure complete (includes no_visa_coverage_days)")
 
+
+def test_no_visa_coverage_counting():
+    """Test NO_VISA_COVERAGE day counting and inclusion in ILR totals."""
+    print("=== Testing NO_VISA_COVERAGE Day Counting ===")
+    
+    config = MockAppConfig(2023, 2024, "01-03-2023", objective_years=5)  # March 1st entry
+    trip_classifier = MockTripClassifier(config)
+    visa_classifier = MockVisaClassifier(config)
+    
+    # Add visa periods with gaps
+    visa_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 3, 1),
+        end_date=date(2023, 6, 30),
+        visaPeriod_id="Student_Visa"
+    )
+    # Leave July as a gap
+    visa_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 8, 1),
+        end_date=date(2023, 12, 31),
+        visaPeriod_id="Work_Visa"
+    )
+    
+    timeline = DateTimeline.from_config(config, trip_classifier, visa_classifier, use_singleton=False)
+    ilr_engine = ILRStatisticsEngine(timeline, config)
+    
+    # Get total counts and verify NO_VISA_COVERAGE is tracked
+    total_counts = ilr_engine.get_ilr_counts_total()
+    assert 'no_visa_coverage_days' in total_counts, "Should track no_visa_coverage_days"
+    assert total_counts['no_visa_coverage_days'] > 0, "Should have NO_VISA_COVERAGE days in July gap"
+    print(f"✓ Found {total_counts['no_visa_coverage_days']} NO_VISA_COVERAGE days")
+    
+    # Verify NO_VISA_COVERAGE days are included in ILR totals
+    expected_total = total_counts['ilr_in_uk_days'] + total_counts['short_trip_days'] + total_counts['no_visa_coverage_days']
+    assert total_counts['ilr_total_days'] == expected_total, "NO_VISA_COVERAGE days should count toward ILR total"
+    print("✓ NO_VISA_COVERAGE days correctly included in ILR totals")
+    
+    # Test monthly counts include NO_VISA_COVERAGE
+    july_counts = ilr_engine.get_ilr_counts_for_month(2023, 7)  # Gap month
+    assert 'no_visa_coverage_days' in july_counts, "Monthly counts should include no_visa_coverage_days"
+    assert july_counts['no_visa_coverage_days'] > 0, "July should have NO_VISA_COVERAGE days"
+    print(f"✓ July monthly counts include {july_counts['no_visa_coverage_days']} NO_VISA_COVERAGE days")
+    
+    # Verify covered months have zero NO_VISA_COVERAGE days
+    june_counts = ilr_engine.get_ilr_counts_for_month(2023, 6)  # Covered month
+    assert june_counts['no_visa_coverage_days'] == 0, "June should have zero NO_VISA_COVERAGE days"
+    print("✓ Covered months correctly show zero NO_VISA_COVERAGE days")
+    
+    print("✓ All NO_VISA_COVERAGE counting tests passed\n")
+
+def test_remaining_days_breakdown():
+    """Test the remaining days breakdown functionality."""
+    print("=== Testing Remaining Days Breakdown ===")
+    
+    config = MockAppConfig(2023, 2024, "01-06-2023", objective_years=5)
+    trip_classifier = MockTripClassifier(config)
+    visa_classifier = MockVisaClassifier(config)
+    
+    # Create visa periods with gaps in the future
+    visa_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 6, 1),
+        end_date=date(2023, 12, 31),
+        visaPeriod_id="Student_Visa"
+    )
+    # Gap from Jan 1-Feb 28, 2024 (59 days)
+    visa_classifier.add_mock_visaPeriod(
+        start_date=date(2024, 3, 1),
+        end_date=date(2024, 12, 31),
+        visaPeriod_id="Work_Visa"
+    )
+    
+    timeline = DateTimeline.from_config(config, trip_classifier, visa_classifier, use_singleton=False)
+    ilr_engine = ILRStatisticsEngine(timeline, config)
+    
+    # Test breakdown for total scenario
+    breakdown = ilr_engine.get_remaining_days_breakdown(scenario="total")
+    print(f"DEBUG: Total scenario breakdown: {breakdown}")
+    
+    # Debug: Check actual statistics
+    stats = ilr_engine.get_global_statistics()
+    print(f"DEBUG: Total scenario days_remaining: {stats.total_scenario.days_remaining}")
+    print(f"DEBUG: In-UK scenario days_remaining: {stats.in_uk_scenario.days_remaining}")
+    print(f"DEBUG: no_visa_coverage_days: {stats.no_visa_coverage_days}")
+    
+    assert 'covered_remaining' in breakdown, "Should have covered_remaining"
+    assert 'uncovered_remaining' in breakdown, "Should have uncovered_remaining"
+    assert 'total_remaining' in breakdown, "Should have total_remaining"
+    
+    # Verify total consistency
+    expected_total = breakdown['covered_remaining'] + breakdown['uncovered_remaining']
+    assert breakdown['total_remaining'] == expected_total, f"Total should equal sum of parts: {breakdown['total_remaining']} != {expected_total}"
+    print(f"✓ Total scenario breakdown: {breakdown['covered_remaining']} covered + {breakdown['uncovered_remaining']} uncovered = {breakdown['total_remaining']} total")
+    
+    # Test breakdown for in_uk scenario
+    breakdown_uk = ilr_engine.get_remaining_days_breakdown(scenario="in_uk")
+    assert 'covered_remaining' in breakdown_uk, "Should have covered_remaining for in_uk"
+    assert 'uncovered_remaining' in breakdown_uk, "Should have uncovered_remaining for in_uk"
+    assert 'total_remaining' in breakdown_uk, "Should have total_remaining for in_uk"
+    print(f"✓ In-UK scenario breakdown: {breakdown_uk['covered_remaining']} covered + {breakdown_uk['uncovered_remaining']} uncovered = {breakdown_uk['total_remaining']} total")
+    
+    # Test with specific calculation date
+    test_date = date(2024, 1, 15)  # During gap period
+    breakdown_date = ilr_engine.get_remaining_days_breakdown(scenario="total", calculation_date=test_date)
+    assert isinstance(breakdown_date['uncovered_remaining'], int), "Should return integer counts"
+    print(f"✓ Specific date breakdown works: {breakdown_date}")
+    
+    print("✓ All remaining days breakdown tests passed\n")
 
 def run_all_ilr_statistics_tests():
     """Run all ILRStatisticsEngine tests."""
@@ -488,6 +624,12 @@ def run_all_ilr_statistics_tests():
         print()
         
         test_ilr_counting_methods()
+        print()
+        
+        test_no_visa_coverage_counting()
+        print()
+        
+        test_remaining_days_breakdown()
         print()
         
         test_global_statistics()

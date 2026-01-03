@@ -116,17 +116,30 @@ class MockVisaPeriodClassifier:
         return target_date in self._mock_visaPeriod_periods
     
     def get_visaPeriod_summary(self, target_date):
-        """Mock method - returns no visa period summary"""
-        return {
-            'has_visaPeriod': False,
-            'visaPeriod_id': None,
-            'visaPeriod_label': None,
-            'start_date': None,
-            'end_date': None,
-            'gross_salary': None,
-            'days_in_period': None,
-            'day_number_in_period': None
-        }
+        """Mock method - returns visa period summary or none if date not covered"""
+        if target_date in self._mock_visaPeriod_periods:
+            visa_info = self._mock_visaPeriod_periods[target_date]
+            return {
+                'has_visaPeriod': True,
+                'visaPeriod_id': visa_info['visaPeriod_id'],
+                'visaPeriod_label': visa_info['visaPeriod_label'],
+                'start_date': visa_info['start_date'],
+                'end_date': visa_info['end_date'],
+                'gross_salary': visa_info['gross_salary'],
+                'days_in_period': (visa_info['end_date'] - visa_info['start_date']).days + 1,
+                'day_number_in_period': (target_date - visa_info['start_date']).days + 1
+            }
+        else:
+            return {
+                'has_visaPeriod': False,
+                'visaPeriod_id': None,
+                'visaPeriod_label': None,
+                'start_date': None,
+                'end_date': None,
+                'gross_salary': None,
+                'days_in_period': None,
+                'day_number_in_period': None
+            }
     
     def add_mock_visaPeriod(self, start_date, end_date, visaPeriod_id="mock_visa", salary="£30000.00"):
         """Add a mock visa period for testing"""
@@ -290,6 +303,14 @@ def test_date_timeline_classification_methods():
     config = MockAppConfig(2023, 2025, "01-03-2023")  # March 1st first entry
     mock_trip_classifier = MockTripClassifier(config)
     mock_visaPeriod_classifier = MockVisaPeriodClassifier(config)
+    
+    # Add visa coverage for the test period
+    mock_visaPeriod_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 3, 1),
+        end_date=date(2025, 12, 31),
+        visaPeriod_id="Test_Visa"
+    )
+    
     timeline = DateTimeline.from_config(config, mock_trip_classifier, mock_visaPeriod_classifier, use_singleton=False)
     
     # Initially, days should be classified as PRE_ENTRY or UK_RESIDENCE
@@ -330,6 +351,60 @@ def test_date_timeline_classification_methods():
     print("✓ get_classification_counts_total() works correctly")
     
     print("✓ All DateTimeline classification methods tests passed\n")
+    teardown_test()
+
+
+def test_no_visa_coverage_classification():
+    """Test NO_VISA_COVERAGE day classification."""
+    print("=== Testing NO_VISA_COVERAGE Classification ===")
+    
+    setup_test()
+    config = MockAppConfig(2023, 2025, "01-03-2023")  # March 1st first entry
+    mock_trip_classifier = MockTripClassifier(config)
+    mock_visaPeriod_classifier = MockVisaPeriodClassifier(config)
+    
+    # Add a visa period with a gap
+    mock_visaPeriod_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 3, 1),
+        end_date=date(2023, 6, 30),
+        visaPeriod_id="Student_Visa"
+    )
+    # Leave a gap from July 1-31, add another visa starting August 1
+    mock_visaPeriod_classifier.add_mock_visaPeriod(
+        start_date=date(2023, 8, 1),
+        end_date=date(2023, 12, 31),
+        visaPeriod_id="Work_Visa"
+    )
+    
+    timeline = DateTimeline.from_config(config, mock_trip_classifier, mock_visaPeriod_classifier, use_singleton=False)
+    
+    # Test days within visa coverage - should be UK_RESIDENCE
+    covered_day = timeline.get_day(date(2023, 6, 15))  # Within Student Visa period
+    assert covered_day.classification == DayClassification.UK_RESIDENCE, f"Expected UK_RESIDENCE for covered day, got {covered_day.classification}"
+    print("✓ Days with visa coverage classified as UK_RESIDENCE")
+    
+    # Test days without visa coverage - should be NO_VISA_COVERAGE
+    gap_day = timeline.get_day(date(2023, 7, 15))  # In gap between Student and Work visas
+    assert gap_day.classification == DayClassification.NO_VISA_COVERAGE, f"Expected NO_VISA_COVERAGE for gap day, got {gap_day.classification}"
+    print("✓ Days without visa coverage classified as NO_VISA_COVERAGE")
+    
+    # Test days in another visa period - should be UK_RESIDENCE
+    second_visa_day = timeline.get_day(date(2023, 8, 15))  # Within Work Visa period
+    assert second_visa_day.classification == DayClassification.UK_RESIDENCE, f"Expected UK_RESIDENCE for second visa day, got {second_visa_day.classification}"
+    print("✓ Days in second visa period classified as UK_RESIDENCE")
+    
+    # Test classification counts include NO_VISA_COVERAGE
+    no_visa_days = timeline.get_days_by_classification(DayClassification.NO_VISA_COVERAGE)
+    assert len(no_visa_days) > 0, "Should have NO_VISA_COVERAGE days in July gap"
+    print(f"✓ Found {len(no_visa_days)} NO_VISA_COVERAGE days in visa gap")
+    
+    # Test get_classification_counts_total includes NO_VISA_COVERAGE
+    total_counts = timeline.get_classification_counts_total()
+    assert DayClassification.NO_VISA_COVERAGE in total_counts, "NO_VISA_COVERAGE should be in counts"
+    assert total_counts[DayClassification.NO_VISA_COVERAGE] > 0, "Should have non-zero NO_VISA_COVERAGE count"
+    print(f"✓ Classification counts includes {total_counts[DayClassification.NO_VISA_COVERAGE]} NO_VISA_COVERAGE days")
+    
+    print("✓ All NO_VISA_COVERAGE classification tests passed\n")
     teardown_test()
 
 
@@ -540,6 +615,7 @@ def run_all_timeline_tests():
     test_date_timeline_basic_methods()
     test_date_timeline_month_year_methods()
     test_date_timeline_classification_methods()
+    test_no_visa_coverage_classification()
     test_date_timeline_auto_classification()
     test_date_timeline_summary_methods()
     test_leap_year_boundary_conditions()

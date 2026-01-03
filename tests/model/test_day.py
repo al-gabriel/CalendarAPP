@@ -25,6 +25,7 @@ def test_day_classification_enum():
         'SHORT_TRIP': "short_trip", 
         'LONG_TRIP': "long_trip",
         'PRE_ENTRY': "pre_entry",
+        'NO_VISA_COVERAGE': "no_visa_coverage",
         'UNKNOWN': "unknown"
     }
     
@@ -99,11 +100,17 @@ def test_day_ilr_counting_methods():
     long_trip_day = Day(long_trip_date)
     long_trip_day.classification = DayClassification.LONG_TRIP
     
+    # Create NO_VISA_COVERAGE test day
+    no_visa_date = date(2023, 8, 15)
+    no_visa_day = Day(no_visa_date)
+    no_visa_day.classification = DayClassification.NO_VISA_COVERAGE
+    
     # Test counts_as_ilr_in_uk_day
     assert pre_entry_day.counts_as_ilr_in_uk_day(first_entry_date) == False, "Pre-entry day should not count as ILR in-UK"
     assert uk_residence_day.counts_as_ilr_in_uk_day(first_entry_date) == True, "UK residence day should count as ILR in-UK"
     assert short_trip_day.counts_as_ilr_in_uk_day(first_entry_date) == False, "Short trip day should not count as ILR in-UK"
     assert long_trip_day.counts_as_ilr_in_uk_day(first_entry_date) == False, "Long trip day should not count as ILR in-UK"
+    assert no_visa_day.counts_as_ilr_in_uk_day(first_entry_date) == False, "No visa coverage day should not count as ILR in-UK"
     print("✓ counts_as_ilr_in_uk_day() correct")
     
     # Test counts_as_short_trip_day
@@ -111,13 +118,23 @@ def test_day_ilr_counting_methods():
     assert uk_residence_day.counts_as_short_trip_day(first_entry_date) == False, "UK residence day should not count as short trip"
     assert short_trip_day.counts_as_short_trip_day(first_entry_date) == True, "Short trip day should count as short trip"
     assert long_trip_day.counts_as_short_trip_day(first_entry_date) == False, "Long trip day should not count as short trip"
+    assert no_visa_day.counts_as_short_trip_day(first_entry_date) == False, "No visa coverage day should not count as short trip"
     print("✓ counts_as_short_trip_day() correct")
     
-    # Test counts_as_ilr_total_day
+    # Test counts_as_no_visa_coverage_day
+    assert pre_entry_day.counts_as_no_visa_coverage_day(first_entry_date) == False, "Pre-entry day should not count as no visa coverage"
+    assert uk_residence_day.counts_as_no_visa_coverage_day(first_entry_date) == False, "UK residence day should not count as no visa coverage"
+    assert short_trip_day.counts_as_no_visa_coverage_day(first_entry_date) == False, "Short trip day should not count as no visa coverage"
+    assert long_trip_day.counts_as_no_visa_coverage_day(first_entry_date) == False, "Long trip day should not count as no visa coverage"
+    assert no_visa_day.counts_as_no_visa_coverage_day(first_entry_date) == True, "No visa coverage day should count as no visa coverage"
+    print("✓ counts_as_no_visa_coverage_day() correct")
+    
+    # Test counts_as_ilr_total_day (now includes NO_VISA_COVERAGE)
     assert pre_entry_day.counts_as_ilr_total_day(first_entry_date) == False, "Pre-entry day should not count toward ILR total"
     assert uk_residence_day.counts_as_ilr_total_day(first_entry_date) == True, "UK residence day should count toward ILR total"
     assert short_trip_day.counts_as_ilr_total_day(first_entry_date) == True, "Short trip day should count toward ILR total"
     assert long_trip_day.counts_as_ilr_total_day(first_entry_date) == False, "Long trip day should not count toward ILR total"
+    assert no_visa_day.counts_as_ilr_total_day(first_entry_date) == True, "No visa coverage day should count toward ILR total"
     print("✓ counts_as_ilr_total_day() correct")
     
     # Test counts_as_long_trip_day
@@ -125,6 +142,7 @@ def test_day_ilr_counting_methods():
     assert uk_residence_day.counts_as_long_trip_day(first_entry_date) == False, "UK residence day should not count as long trip"
     assert short_trip_day.counts_as_long_trip_day(first_entry_date) == False, "Short trip day should not count as long trip"
     assert long_trip_day.counts_as_long_trip_day(first_entry_date) == True, "Long trip day should count as long trip"
+    assert no_visa_day.counts_as_long_trip_day(first_entry_date) == False, "No visa coverage day should not count as long trip"
     print("✓ counts_as_long_trip_day() correct")
     
     print("✓ All Day ILR counting methods tests passed\n")

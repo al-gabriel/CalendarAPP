@@ -75,9 +75,25 @@ class ILRStatisticsModule(tk.Frame):
                                             font=("Arial", 9))
         self.total_progress_label.pack(anchor=tk.W, padx=5, pady=2)
         
-        self.total_remaining_label = tk.Label(total_frame, text="", 
-                                             font=("Arial", 9))
-        self.total_remaining_label.pack(anchor=tk.W, padx=5, pady=2)
+        # Total remaining frame for combined display
+        self.total_remaining_frame = tk.Frame(total_frame, bg=total_frame.cget("bg"))
+        self.total_remaining_frame.pack(anchor=tk.W, padx=5, pady=2)
+        
+        self.total_remaining_label = tk.Label(self.total_remaining_frame, text="", 
+                                             font=("Arial", 9), fg="darkgreen", bg=total_frame.cget("bg"))
+        self.total_remaining_label.pack(side=tk.LEFT)
+        
+        self.total_covered_label = tk.Label(self.total_remaining_frame, text="", 
+                                           font=("Arial", 9), fg="darkgreen", bg=total_frame.cget("bg"))
+        self.total_covered_label.pack(side=tk.LEFT)
+        
+        self.total_plus_label = tk.Label(self.total_remaining_frame, text="", 
+                                        font=("Arial", 9), fg="black", bg=total_frame.cget("bg"))
+        self.total_plus_label.pack(side=tk.LEFT)
+        
+        self.total_uncovered_label = tk.Label(self.total_remaining_frame, text="", 
+                                             font=("Arial", 9), fg="#cc7a7a", bg=total_frame.cget("bg"))
+        self.total_uncovered_label.pack(side=tk.LEFT)
         
         # Total completion date (clickable) - Link styling with orange text
         self.total_completion_button = tk.Button(total_frame, text="", 
@@ -96,9 +112,25 @@ class ILRStatisticsModule(tk.Frame):
                                          font=("Arial", 9))
         self.uk_progress_label.pack(anchor=tk.W, padx=5, pady=2)
         
-        self.uk_remaining_label = tk.Label(uk_frame, text="", 
-                                          font=("Arial", 9))
-        self.uk_remaining_label.pack(anchor=tk.W, padx=5, pady=2)
+        # UK remaining frame for combined display
+        self.uk_remaining_frame = tk.Frame(uk_frame, bg=uk_frame.cget("bg"))
+        self.uk_remaining_frame.pack(anchor=tk.W, padx=5, pady=2)
+        
+        self.uk_remaining_label = tk.Label(self.uk_remaining_frame, text="", 
+                                          font=("Arial", 9), fg="darkgreen", bg=uk_frame.cget("bg"))
+        self.uk_remaining_label.pack(side=tk.LEFT)
+        
+        self.uk_covered_label = tk.Label(self.uk_remaining_frame, text="", 
+                                        font=("Arial", 9), fg="darkgreen", bg=uk_frame.cget("bg"))
+        self.uk_covered_label.pack(side=tk.LEFT)
+        
+        self.uk_plus_label = tk.Label(self.uk_remaining_frame, text="", 
+                                     font=("Arial", 9), fg="black", bg=uk_frame.cget("bg"))
+        self.uk_plus_label.pack(side=tk.LEFT)
+        
+        self.uk_uncovered_label = tk.Label(self.uk_remaining_frame, text="", 
+                                          font=("Arial", 9), fg="#cc7a7a", bg=uk_frame.cget("bg"))
+        self.uk_uncovered_label.pack(side=tk.LEFT)
         
         # UK completion date (clickable) - Link styling with yellow text
         self.uk_completion_button = tk.Button(uk_frame, text="", 
@@ -163,9 +195,23 @@ class ILRStatisticsModule(tk.Frame):
             
             if uk_scenario.is_complete:
                 self.uk_remaining_label.config(text="✅ Requirement Complete!", fg="green")
+                self.uk_uncovered_label.config(text="")
                 self.uk_completion_button.config(text="", state=tk.DISABLED)
             else:
-                self.uk_remaining_label.config(text=f"Remaining: {uk_scenario.days_remaining:,} days", fg="red")
+                # Get remaining days breakdown from backend
+                breakdown = self.ilr_engine.get_remaining_days_breakdown(scenario="in_uk", calculation_date=calculation_date)
+                
+                if breakdown['uncovered_remaining'] > 0:
+                    self.uk_remaining_label.config(text=f"Remaining: {breakdown['total_remaining']:,} days (", fg="black")
+                    self.uk_covered_label.config(text=f"{breakdown['covered_remaining']:,}", fg="darkgreen")
+                    self.uk_plus_label.config(text=" + ", fg="black")
+                    self.uk_uncovered_label.config(text=f"{breakdown['uncovered_remaining']:,} days)")
+                else:
+                    self.uk_remaining_label.config(text=f"Remaining: {breakdown['total_remaining']:,} days", fg="black")
+                    self.uk_covered_label.config(text="")
+                    self.uk_plus_label.config(text="")
+                    self.uk_uncovered_label.config(text="")
+                    
                 if uk_scenario.target_completion_date:
                     completion_text = f"Target: {uk_scenario.target_completion_date.strftime('%d-%m-%Y')}"
                     self.uk_completion_button.config(text=completion_text, state=tk.NORMAL)
@@ -179,9 +225,23 @@ class ILRStatisticsModule(tk.Frame):
             
             if total_scenario.is_complete:
                 self.total_remaining_label.config(text="✅ Requirement Complete!", fg="green")
+                self.total_uncovered_label.config(text="")
                 self.total_completion_button.config(text="", state=tk.DISABLED)
             else:
-                self.total_remaining_label.config(text=f"Remaining: {total_scenario.days_remaining:,} days", fg="red")
+                # Get remaining days breakdown from backend
+                breakdown = self.ilr_engine.get_remaining_days_breakdown(scenario="total", calculation_date=calculation_date)
+                
+                if breakdown['uncovered_remaining'] > 0:
+                    self.total_remaining_label.config(text=f"Remaining: {breakdown['total_remaining']:,} days (", fg="black")
+                    self.total_covered_label.config(text=f"{breakdown['covered_remaining']:,}", fg="darkgreen")
+                    self.total_plus_label.config(text=" + ", fg="black")
+                    self.total_uncovered_label.config(text=f"{breakdown['uncovered_remaining']:,} days)")
+                else:
+                    self.total_remaining_label.config(text=f"Remaining: {breakdown['total_remaining']:,} days", fg="black")
+                    self.total_covered_label.config(text="")
+                    self.total_plus_label.config(text="")
+                    self.total_uncovered_label.config(text="")
+                    
                 if total_scenario.target_completion_date:
                     completion_text = f"Target: {total_scenario.target_completion_date.strftime('%d-%m-%Y')}"
                     self.total_completion_button.config(text=completion_text, state=tk.NORMAL)

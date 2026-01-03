@@ -51,10 +51,17 @@ class MonthInfoModule(tk.Frame):
                                     font=("Arial", 10, "bold"))
         counts_frame.pack(fill=tk.X, pady=(0, 8))
         
-        # UK Residence days
-        self.uk_days_label = tk.Label(counts_frame, text="", 
-                                     font=("Arial", 9), fg="darkgreen")
-        self.uk_days_label.pack(anchor=tk.W, padx=5, pady=1)
+        # UK Residence days (will show combined UK + No Visa if needed)
+        self.uk_days_frame = tk.Frame(counts_frame, bg=counts_frame.cget("bg"))
+        self.uk_days_frame.pack(anchor=tk.W, padx=5, pady=1)
+        
+        self.uk_days_label = tk.Label(self.uk_days_frame, text="", 
+                                     font=("Arial", 9), fg="darkgreen", bg=counts_frame.cget("bg"))
+        self.uk_days_label.pack(side=tk.LEFT)
+        
+        self.uk_no_visa_label = tk.Label(self.uk_days_frame, text="", 
+                                        font=("Arial", 9), fg="darkred", bg=counts_frame.cget("bg"))
+        self.uk_no_visa_label.pack(side=tk.LEFT)
         
         # Short trip days  
         self.short_trip_label = tk.Label(counts_frame, text="", 
@@ -97,6 +104,7 @@ class MonthInfoModule(tk.Frame):
             uk_count = counts.get(DayClassification.UK_RESIDENCE, 0)
             short_trip_count = counts.get(DayClassification.SHORT_TRIP, 0)
             long_trip_count = counts.get(DayClassification.LONG_TRIP, 0)
+            no_visa_count = counts.get(DayClassification.NO_VISA_COVERAGE, 0)
             pre_entry_count = counts.get(DayClassification.PRE_ENTRY, 0)
             
             # Get trip statistics using existing trip classifier method
@@ -109,7 +117,14 @@ class MonthInfoModule(tk.Frame):
             short_trips = [trip for trip in trips_in_month if trip.get('is_short_trip', False)]
             long_trips = [trip for trip in trips_in_month if not trip.get('is_short_trip', False)]
             
-            self.uk_days_label.config(text=f"UK Residence: {uk_count} days")
+            # Display combined UK Residence + No Visa Coverage
+            if no_visa_count > 0:
+                self.uk_days_label.config(text=f"UK Residence: {uk_count}")
+                self.uk_no_visa_label.config(text=f" + {no_visa_count} days")
+            else:
+                self.uk_days_label.config(text=f"UK Residence: {uk_count} days")
+                self.uk_no_visa_label.config(text="")
+            
             self.short_trip_label.config(text=f"Short Trips: {len(short_trips)} trips - {short_trip_count} days")
             self.long_trip_label.config(text=f"Long Trips: {len(long_trips)} trips - {long_trip_count} days")
             self.pre_entry_label.config(text=f"Pre-Entry: {pre_entry_count} days")
