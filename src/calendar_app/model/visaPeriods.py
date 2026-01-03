@@ -390,3 +390,33 @@ class VisaClassifier:
             'total_visaPeriods': len(self.visaPeriods_data),
             'uncovered_date_ranges': uncovered_ranges
         }
+        
+    def is_visa_start_date(self, target_date: date) -> bool:
+        """
+        Check if a date is the start date of any visa period.
+        
+        Args:
+            target_date: Date to check
+            
+        Returns:
+            True if date is a visa period start date, False otherwise
+        """
+        visa_info = self.get_day_visaPeriod_info(target_date)
+        if visa_info is None:
+            return False
+        return target_date == visa_info["start_date_obj"]
+        
+    def is_visa_end_date(self, target_date: date) -> bool:
+        """
+        Check if a date is the end date of any visa period.
+        
+        Args:
+            target_date: Date to check
+            
+        Returns:
+            True if date is a visa period end date, False otherwise
+        """
+        visa_info = self.get_day_visaPeriod_info(target_date)
+        if visa_info is None:
+            return False
+        return target_date == visa_info["end_date_obj"]

@@ -443,3 +443,29 @@ class DateTimeline:
             }
         
         return result
+    
+    def get_visa_border_info(self, target_date: date) -> Dict:
+        """
+        Get visa border information for a specific date.
+        
+        Args:
+            target_date: Date to check for visa borders
+            
+        Returns:
+            Dictionary with visa border information:
+            - is_visa_start: bool (True if this is a visa start date)
+            - is_visa_end: bool (True if this is a visa end date)
+            - visa_label: str or None (visa label if applicable)
+        """
+        is_start = self.visaPeriod_classifier.is_visa_start_date(target_date)
+        is_end = self.visaPeriod_classifier.is_visa_end_date(target_date)
+        
+        visa_label = None
+        if is_start or is_end:
+            visa_label = self.visaPeriod_classifier.get_visaPeriod_label(target_date)
+        
+        return {
+            'is_visa_start': is_start,
+            'is_visa_end': is_end,
+            'visa_label': visa_label
+        }
