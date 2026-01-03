@@ -66,8 +66,8 @@ class CalendarApp:
         # Set window title (shown in title bar)
         self.root.title("UK ILR Calendar App")
         
-        # Set initial window size to the minimum size to ensure proper layout
-        self.root.geometry("900x700")
+        # Set initial window size - increased for year view
+        self.root.geometry("1200x700")
         
         # Allow window resizing (True = resizable, False = fixed size)
         self.root.resizable(True, True)
@@ -78,21 +78,21 @@ class CalendarApp:
         # Get screen dimensions and calculate center position
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        window_width = self.root.winfo_reqwidth()
-        window_height = self.root.winfo_reqheight()
+        window_width = 1200  # Use actual geometry values instead of winfo_reqwidth()
+        window_height = 700  # Use actual geometry values instead of winfo_reqheight()
         
         # Calculate center coordinates (integer division with //)
         x = (screen_width - window_width) // 2
         y = (screen_height - window_height) // 2
         
-        # Set window position: +x+y offset from top-left corner
-        self.root.geometry(f"+{x}+{y}")    # f-strings are like sprintf() in C
+        # Set window position and size together: widthxheight+x+y
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
-        # Set minimum window size to accommodate the 2x2 grid layout
-        # Left column (statistics + info): 350px minimum + Right column (calendar): 500px minimum = 850px
+        # Set minimum window size for year view - increased width for 3x4 month grid
+        # Left column (statistics + info): 350px minimum + Right column (year calendar): 700px minimum = 1050px
         # Top row (statistics + navigation): 250px + Bottom row (info + calendar): 350px = 600px
-        # Add padding and margin space: 850px + 50px = 900px width, 600px + 100px = 700px height
-        self.root.minsize(900, 700)
+        # Add padding and margin space: 1050px + 150px = 1200px width, 600px + 100px = 700px height
+        self.root.minsize(1200, 700)
         
     def load_data(self):
         """

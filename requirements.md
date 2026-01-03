@@ -439,13 +439,7 @@ The effective **planning horizon** is `objective_years + processing_buffer_years
   - Methods should only access pre-built data structures for predictable performance
   - Fail-fast behavior preferred - detect errors at object creation time
   - Clear error messages for missing or invalid required parametersrentation
-  - Supports refresh functionality: objects can be recreated to reload data
 
-- **AR-4.4: Data Refresh Architecture**
-  - Application must support refresh functionality to reload JSON data changes
-  - Refresh must recreate all data-dependent objects (TripClassifier, DateTimeline)
-  - UI state must be preserved during refresh (current month view, etc.)
-  - All data objects must be designed for recreation without side effects
 
 - **AR-4.5: Required Parameters Policy**
   - Constructor parameters must not use Optional where the parameter is essential for operation

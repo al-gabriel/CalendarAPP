@@ -20,7 +20,8 @@ class ILRStatisticsModule(tk.Frame):
     
     def __init__(self, parent: tk.Widget, config=None, timeline=None, 
                  on_completion_date_click: Optional[Callable[[date], None]] = None,
-                 on_highlight_target_dates: Optional[Callable[[list], None]] = None):
+                 on_highlight_target_dates: Optional[Callable[[list], None]] = None,
+                 on_view_toggle: Optional[Callable[[str], None]] = None):
         """
         Initialize the ILR Statistics module.
         
@@ -30,6 +31,7 @@ class ILRStatisticsModule(tk.Frame):
             timeline: DateTimeline instance  
             on_completion_date_click: Callback for completion date clicks
             on_highlight_target_dates: Callback for highlighting target dates
+            on_view_toggle: Callback for calendar view toggle (month/year)
         """
         super().__init__(parent, relief=tk.RAISED, bd=1, padx=10, pady=8)
         
@@ -37,6 +39,10 @@ class ILRStatisticsModule(tk.Frame):
         self.timeline = timeline
         self.on_completion_date_click = on_completion_date_click
         self.on_highlight_target_dates = on_highlight_target_dates
+        self.on_view_toggle = on_view_toggle
+        
+        # Current view mode
+        self.current_view = "year"  # Default to year view
         
         # ILR Statistics Engine
         self.ilr_engine = None
@@ -54,10 +60,45 @@ class ILRStatisticsModule(tk.Frame):
     
     def setup_ui(self):
         """Set up the UI components."""
-        # Main title
-        title = tk.Label(self, text="ILR Progress Tracking", 
-                        font=("Arial", 12, "bold"), fg="navy")
-        title.pack(anchor=tk.W, pady=(0, 8))
+        # Main title and view toggle
+        header_frame = tk.Frame(self, bg=self.cget("bg"))
+        header_frame.pack(anchor=tk.W, fill=tk.X, pady=(0, 8))
+        
+        # Title on left
+        title = tk.Label(header_frame, text="ILR Progress Tracking", 
+                        font=("Arial", 12, "bold"), fg="navy",
+                        bg=header_frame.cget("bg"))
+        title.pack(side=tk.LEFT)
+        
+        # View toggle on right
+        toggle_frame = tk.Frame(header_frame, bg=header_frame.cget("bg"))
+        toggle_frame.pack(side=tk.RIGHT)
+        
+        self.month_toggle_btn = tk.Button(
+            toggle_frame,
+            text="Month",
+            font=("Arial", 8),
+            relief=tk.FLAT,
+            bd=2,
+            bg="white",
+            fg="gray",
+            width=6,
+            command=lambda: self.toggle_view("month")
+        )
+        self.month_toggle_btn.pack(side=tk.LEFT, padx=(0, 2))
+        
+        self.year_toggle_btn = tk.Button(
+            toggle_frame,
+            text="Year",
+            font=("Arial", 8),
+            relief=tk.RAISED,
+            bd=2,
+            bg="#e3f2fd",
+            fg="black",
+            width=6,
+            command=lambda: self.toggle_view("year")
+        )
+        self.year_toggle_btn.pack(side=tk.LEFT)
         
         # Configuration info section
         self.setup_config_info()
@@ -139,6 +180,40 @@ class ILRStatisticsModule(tk.Frame):
                                              fg="goldenrod", bg=self.cget("bg"),
                                              command=self._on_uk_completion_click)
         self.uk_completion_button.pack(anchor=tk.W, padx=5, pady=2)
+    
+    def toggle_view(self, view_mode: str):
+        """Toggle between month and year view."""
+        if view_mode == self.current_view:
+            return
+            
+        self.current_view = view_mode
+        
+        # Update button appearances
+        if view_mode == "month":
+            self.month_toggle_btn.config(relief=tk.RAISED, bg="#e3f2fd", fg="black")
+            self.year_toggle_btn.config(relief=tk.FLAT, bg="white", fg="gray")
+        else:
+            self.month_toggle_btn.config(relief=tk.FLAT, bg="white", fg="gray")
+            self.year_toggle_btn.config(relief=tk.RAISED, bg="#e3f2fd", fg="black")
+        
+        # Notify parent about view change
+        if self.on_view_toggle:
+            self.on_view_toggle(view_mode)
+    
+    def update_toggle_appearance(self, view_mode: str):
+        """Update toggle button appearance without triggering callback."""
+        if view_mode == self.current_view:
+            return
+            
+        self.current_view = view_mode
+        
+        # Update button appearances only
+        if view_mode == "month":
+            self.month_toggle_btn.config(relief=tk.RAISED, bg="#e3f2fd", fg="black")
+            self.year_toggle_btn.config(relief=tk.FLAT, bg="white", fg="gray")
+        else:
+            self.month_toggle_btn.config(relief=tk.FLAT, bg="white", fg="gray")
+            self.year_toggle_btn.config(relief=tk.RAISED, bg="#e3f2fd", fg="black")
     
     def setup_config_info(self):
         """Set up the configuration information section."""

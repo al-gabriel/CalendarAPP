@@ -44,6 +44,9 @@ class NavigationHeader:
             self.min_year = 2023
             self.max_year = 2040
         
+        # Current view mode state
+        self.current_view_mode = "year"  # Default to year view
+        
         # Current date state
         self.current_date = date.today()
         
@@ -284,11 +287,41 @@ class NavigationHeader:
         at_max_date = (year == self.max_year and month == 12)
         at_max_year = (year == self.max_year)
         
-        # Update button states
-        self.prev_month_button.config(state="disabled" if at_min_date else "normal")
-        self.prev_year_button.config(state="disabled" if at_min_year else "normal")
-        self.next_month_button.config(state="disabled" if at_max_date else "normal")
-        self.next_year_button.config(state="disabled" if at_max_year else "normal")
+        # Update button states only if they are visible (not in year view)
+        if self.current_view_mode != "year":
+            if self.prev_month_button and self.prev_month_button.winfo_ismapped():
+                self.prev_month_button.config(state="disabled" if at_min_date else "normal")
+            if self.next_month_button and self.next_month_button.winfo_ismapped():
+                self.next_month_button.config(state="disabled" if at_max_date else "normal")
+        
+        # Always update year buttons
+        if self.prev_year_button:
+            self.prev_year_button.config(state="disabled" if at_min_year else "normal")
+        if self.next_year_button:
+            self.next_year_button.config(state="disabled" if at_max_year else "normal")
+    
+    def set_view_mode(self, view_mode: str):
+        """Show/hide navigation elements based on view mode."""
+        self.current_view_mode = view_mode
+        
+        if view_mode == "year":
+            # Hide month-specific controls in year view
+            if self.prev_month_button:
+                self.prev_month_button.pack_forget()
+            if self.next_month_button:
+                self.next_month_button.pack_forget()
+            if self.month_dropdown:
+                self.month_dropdown.pack_forget()
+        else:
+            # Show month-specific controls in month view
+            if self.prev_month_button:
+                self.prev_month_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(1,0))
+            if self.next_month_button:
+                self.next_month_button.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(0,1))
+            if self.month_dropdown:
+                self.month_dropdown.pack(side=tk.LEFT, padx=5, before=self.year_dropdown)
+            # Update button states based on date limits
+            self.update_button_states()
     
     # Internal event handlers (call parent callbacks)
     def _on_month_changed(self, event=None):

@@ -231,6 +231,40 @@ class DateTimeline:
             
         return counts
     
+    def get_year_day_colors(self, year: int, color_mapping: Dict[DayClassification, str], 
+                           first_entry_date: Optional[date] = None, 
+                           pre_entry_color: str = "#e9ecef", 
+                           default_color: str = "white") -> Dict[date, str]:
+        """Get color mapping for all days in a year in a single batch operation.
+        
+        Args:
+            year: Year to get colors for
+            color_mapping: Dictionary mapping DayClassification to color strings
+            first_entry_date: Optional first entry date for pre-entry classification
+            pre_entry_color: Color for days before first entry
+            default_color: Default color for unclassified days
+            
+        Returns:
+            Dictionary mapping date objects to color strings
+        """
+        year_colors = {}
+        
+        # Get all days for the year in batch
+        year_days = self.get_days_in_year(year)
+        
+        for day_obj in year_days:
+            day_date = day_obj.date
+            
+            # Check pre-entry first
+            if first_entry_date and day_date < first_entry_date:
+                year_colors[day_date] = pre_entry_color
+            elif hasattr(day_obj, 'classification') and day_obj.classification in color_mapping:
+                year_colors[day_date] = color_mapping[day_obj.classification]
+            else:
+                year_colors[day_date] = default_color
+                
+        return year_colors
+    
     def get_classification_counts_for_year(self, year: int) -> Dict[DayClassification, int]:
         """Get counts of each classification type for a specific year."""
         counts = {classification: 0 for classification in DayClassification}
