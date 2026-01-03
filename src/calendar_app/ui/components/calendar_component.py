@@ -13,6 +13,7 @@ from calendar_app.config import AppConfig
 from calendar_app.model.timeline import DateTimeline
 from calendar_app.ui.components.navigation_header import NavigationHeader
 from calendar_app.ui.modules.calendar_month_module import CalendarMonthModule
+from calendar_app.ui.modules.calendar_year_module import CalendarYearModule
 
 
 class CalendarComponent(tk.Frame):
@@ -52,7 +53,7 @@ class CalendarComponent(tk.Frame):
         
         # State
         self.current_date = date.today()
-        self.current_view_mode = "month"  # "month" or "year"
+        self.current_view_mode = "year"  # "month" or "year" - default to year view
         
         # Components
         self.navigation_header = None
@@ -101,7 +102,7 @@ class CalendarComponent(tk.Frame):
         self.calendar_container.grid_rowconfigure(0, weight=1)
         self.calendar_container.grid_columnconfigure(0, weight=1)
         
-        # Create calendar modules (only month for now)
+        # Create calendar modules
         self.month_module = CalendarMonthModule(
             self.calendar_container,
             config=self.config,
@@ -109,11 +110,17 @@ class CalendarComponent(tk.Frame):
             date_selected_callback=self._on_date_selected_from_calendar
         )
         
-        # Year module placeholder (not implemented yet)
-        self.year_module = None
+        # Create year module
+        self.year_module = CalendarYearModule(
+            self.calendar_container,
+            config=self.config,
+            timeline=self.timeline,
+            date_selected_callback=self._on_date_selected_from_calendar,
+            month_selected_callback=self._on_month_selected_from_year
+        )
         
-        # Start with month view
-        self.switch_calendar_view("month")
+        # Start with year view
+        self.switch_calendar_view("year")
     
     def switch_calendar_view(self, view_mode: str):
         """Switch between month and year calendar views."""
@@ -121,13 +128,12 @@ class CalendarComponent(tk.Frame):
         if self.current_calendar_module:
             self.current_calendar_module.grid_forget()
         
-        # For now, only support month view (year is placeholder)
-        if view_mode == "month" or view_mode == "year":
-            self.current_calendar_module = self.month_module
-            self.month_module.set_current_date(self.current_date)
-            view_mode = "month"  # Force to month since year is not implemented
+        # Switch to appropriate module
+        if view_mode == "year" and self.year_module:
+            self.current_calendar_module = self.year_module
+            self.year_module.set_current_date(self.current_date)
         else:
-            # Default to month
+            # Default to month view
             self.current_calendar_module = self.month_module
             self.month_module.set_current_date(self.current_date)
             view_mode = "month"
@@ -137,6 +143,10 @@ class CalendarComponent(tk.Frame):
         
         # Update state
         self.current_view_mode = view_mode
+        
+        # Update navigation header to show/hide month buttons
+        if self.navigation_header:
+            self.navigation_header.set_view_mode(view_mode)
         
         # Notify parent
         if self.view_changed_callback:
@@ -296,8 +306,9 @@ class CalendarComponent(tk.Frame):
         if self.navigation_header:
             self.navigation_header.set_current_date(month_date)
         
-        # Notify parent
+        # Notify parent about date change
         if self.date_changed_callback:
+            self.date_changed_callback(month_date)
             self.date_changed_callback(month_date)
     
     def refresh_display(self):

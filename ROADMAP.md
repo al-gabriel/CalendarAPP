@@ -92,11 +92,13 @@ S  - Full classification integration with counting and querying methods
   - Update throughout project: ILR statistics engine, calendar view (light red color)
   - **Test:** Days without visa coverage properly included in ILR counts but tracked as separate metric
 
-- [ ] **Year View Implementation**
-  - Implement full `calendar_year_module.py` using whole column 2 (cells 2x2 and 1x2 in 2x2 grid)
-  - 12-month mini-calendar grid (3x4 layout) similar to `calendar_month_module.py`
-  - Month/Year view toggle integration with existing navigation
-  - **Test:** Switch between month and year views smoothly with proper day classifications
+- [X] **Year View Implementation** ✅ *COMPLETED - Full year view with performance optimizations*
+  - Complete `calendar_year_module.py` implementation with 3x4 month grid layout
+  - Clickable month names for navigation and clickable days for day information
+  - Toggle buttons in ILR statistics panel for seamless Month/Year view switching
+  - Performance optimizations: batch data fetching, bulk widget management, resize debouncing
+  - Consistent UI styling with month view, light grey borders, no padding
+  - **Test:** ✅ Smooth switching between month and year views with optimized performance
 
 - [ ] **Visa Period Visual Integration**
   - Add different colors for visa period start/end days in calendar views
@@ -110,14 +112,6 @@ S  - Full classification integration with counting and querying methods
   - External PDF opening via `os.startfile()` - same PDF opens for both flights if they share same document
   - **Test:** Click "View" button on trip day opens correct PDF files
 
-### Evening Session (1-2 hours)
-- [ ] **Data Refresh System**
-  - Add "Refresh" button to main UI (likely in navigation header)
-  - Implement JSON file reload functionality without app restart
-  - Recreate all data objects (TripClassifier, DateTimeline, ILRStatisticsEngine)
-  - Last refresh timestamp display
-  - **Test:** Edit JSON files → click refresh → see changes immediately
-
 **Day 3 Deliverable:** Complete, production-ready Calendar App v1.0
 
 ---
@@ -129,11 +123,9 @@ By end of Day 3, the app must:
 - [X] Calculate correct ILR progress statistics
 - [X] Support day-click interactions with trip details ✅ *ENHANCED - Complete day info module*
 - [X] Handle days without visa coverage (new classification)
-- [ ] Provide both month and year calendar views
+- [X] Provide both month and year calendar views ✅ *COMPLETED*
 - [ ] Show visa period boundaries in calendar
 - [ ] Open your travel PDFs externally from day details
-- [ ] Handle data refresh without restart
-- [ ] Work reliably for daily use
 
 ---
 

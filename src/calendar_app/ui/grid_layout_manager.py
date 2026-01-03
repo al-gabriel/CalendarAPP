@@ -49,7 +49,7 @@ class GridLayoutManager(tk.Frame):
         self.config = config
         self.timeline = timeline
         self.current_date = date.today()
-        self.current_view_mode = "month"  # "month", "year" 
+        self.current_view_mode = "year"  # "month", "year" - default to year view
         self.selected_date = None  # When a specific day is selected
         
         # Module references
@@ -68,9 +68,9 @@ class GridLayoutManager(tk.Frame):
     
     def setup_grid(self):
         """Configure the grid layout."""
-        # Configure grid weights for proper resizing with realistic minimum sizes
+        # Configure grid weights for proper resizing - increased sizes for year view
         self.grid_columnconfigure(0, weight=1, minsize=350)  # Left column - statistics and info panels
-        self.grid_columnconfigure(1, weight=2, minsize=500)  # Right column - calendar with navigation
+        self.grid_columnconfigure(1, weight=2, minsize=700)  # Right column - calendar with navigation (increased for year view)
         self.grid_rowconfigure(0, weight=1, minsize=300)     # Top row - statistics and navigation
         self.grid_rowconfigure(1, weight=1, minsize=200)     # Bottom row - info and calendar grid
     
@@ -90,7 +90,8 @@ class GridLayoutManager(tk.Frame):
             timeline=self.timeline,
             config=self.config,
             on_completion_date_click=self.on_date_selected,
-            on_highlight_target_dates=self.on_highlight_target_dates
+            on_highlight_target_dates=self.on_highlight_target_dates,
+            on_view_toggle=self.on_view_toggle
         )
         self.ilr_statistics_module.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         
@@ -109,8 +110,8 @@ class GridLayoutManager(tk.Frame):
         if hasattr(self.ilr_statistics_module, 'force_target_highlighting_refresh'):
             self.ilr_statistics_module.force_target_highlighting_refresh()
         
-        # Start with month info module
-        self.switch_info_module("month")
+        # Start with year info module to match year view default
+        self.switch_info_module("year")
     
     def switch_info_module(self, info_type: str):
         """Switch the bottom-left info module based on current state."""
@@ -144,19 +145,32 @@ class GridLayoutManager(tk.Frame):
         """Handle view mode change from calendar."""
         self.current_view_mode = view_mode
         
+        # Update toggle button in ILR statistics module (appearance only)
+        if self.ilr_statistics_module:
+            self.ilr_statistics_module.update_toggle_appearance(view_mode)
+        
         # Clear any day selection when changing views
         self.selected_date = None
         
-        # For now, always use month info regardless of view mode
-        self.switch_info_module("month")
+        # Update info module based on view mode
+        if view_mode == "year":
+            self.switch_info_module("year")
+        else:
+            self.switch_info_module("month")
     
     def on_date_selected(self, selected_date: date):
         """Handle date selection from calendar or ILR statistics."""
         self.selected_date = selected_date
+        old_date = self.current_date
         self.current_date = selected_date
         
-        # Notify calendar component to update
-        if self.calendar_component:
+        # Only update calendar component if we need to navigate to a different month/year
+        need_calendar_update = (
+            self.current_view_mode == "year" and old_date.year != selected_date.year or  # Different year in year view
+            self.current_view_mode == "month" and (old_date.year != selected_date.year or old_date.month != selected_date.month)  # Different month/year in month view
+        )
+        
+        if need_calendar_update and self.calendar_component:
             self.calendar_component.set_current_date(selected_date)
         
         # Switch to day info module and update it with selected date
@@ -165,11 +179,18 @@ class GridLayoutManager(tk.Frame):
             self.day_info_module.set_selected_date(selected_date)
     
     def on_day_back_click(self):
-        """Handle back button click from day info module - return to month view."""
-        self.switch_info_module("month")
-        # Update the month info module with the current date
-        if self.month_info_module and hasattr(self.month_info_module, 'set_current_date'):
-            self.month_info_module.set_current_date(self.current_date)
+        """Handle back button click from day info module - return to appropriate view."""
+        # Return to the info module appropriate for current view mode
+        if self.current_view_mode == "year":
+            self.switch_info_module("year")
+            # Update the year info module with the current date
+            if self.year_info_module and hasattr(self.year_info_module, 'set_current_date'):
+                self.year_info_module.set_current_date(self.current_date)
+        else:
+            self.switch_info_module("month")
+            # Update the month info module with the current date
+            if self.month_info_module and hasattr(self.month_info_module, 'set_current_date'):
+                self.month_info_module.set_current_date(self.current_date)
     
     def refresh_all(self):
         """Refresh all modules."""
@@ -205,6 +226,17 @@ class GridLayoutManager(tk.Frame):
         
         # Refresh all displays
         self.refresh_all()
+    
+    def on_view_toggle(self, view_mode: str):
+        """Handle view toggle from ILR statistics module."""
+        if self.calendar_component:
+            self.calendar_component.switch_calendar_view(view_mode)
+        
+        # Update info module based on view mode
+        if view_mode == "year":
+            self.switch_info_module("year")
+        else:
+            self.switch_info_module("month")
     
     def on_highlight_target_dates(self, target_dates):
         """Handle target date highlighting request.

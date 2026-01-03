@@ -7,7 +7,7 @@ This replaces the old month_view.py from the views directory.
 
 import tkinter as tk
 import calendar
-from datetime import date, timedelta
+from datetime import date, timedelta, timedelta
 from typing import Optional, Callable
 
 from calendar_app.config import AppConfig
@@ -102,12 +102,12 @@ class CalendarMonthModule(tk.Frame):
                 text=weekday, 
                 font=("Arial", 10, "bold"),
                 bg="#e9ecef",
-                relief=tk.RAISED,
+                relief=tk.RIDGE,
                 bd=1,
                 width=8,  # Fixed width
-                height=2  # Fixed height in text lines
+                height=1  # Single line height
             )
-            header_label.grid(row=0, column=col, sticky="ew", padx=1, pady=1)
+            header_label.grid(row=0, column=col, sticky="ew", padx=0, pady=0)
         
         # Create days grid frame
         self.days_frame = tk.Frame(self, bg="white")
@@ -120,9 +120,15 @@ class CalendarMonthModule(tk.Frame):
             self.days_frame.grid_rowconfigure(i, weight=1, minsize=40)
     
     def set_current_date(self, new_date: date):
-        """Set the current date and update display."""
-        self.current_date = new_date
-        self.update_month_display()
+        """Set the current date and update display only if month/year changed."""
+        if (new_date.year != self.current_date.year or 
+            new_date.month != self.current_date.month):
+            self.current_date = new_date
+            self.update_month_display()
+        else:
+            # Same month, just update current_date without full refresh
+            self.current_date = new_date
+            # Could add day highlighting logic here if needed in the future
     
     def update_month_display(self):
         """Update the calendar display for the current month."""
@@ -131,37 +137,60 @@ class CalendarMonthModule(tk.Frame):
             button.destroy()
         self.day_buttons.clear()
         
-        # Get calendar information
-        cal = calendar.monthcalendar(self.current_date.year, self.current_date.month)
+        # Get calendar data using itermonthdates (like year view)
+        cal = calendar.Calendar(0)  # Monday as first day
+        month_days = list(cal.itermonthdates(self.current_date.year, self.current_date.month))
         
-        # Create day buttons
-        for week_num, week in enumerate(cal):
-            for day_num, day in enumerate(week):
-                if day == 0:
-                    # Empty cell for days outside current month
-                    continue
-                
-                button_date = date(self.current_date.year, self.current_date.month, day)
+        # Ensure exactly 42 days (6 weeks x 7 days) for consistent 7x6 grid
+        if len(month_days) < 42:
+            # If less than 42 days, add more days from next month
+            while len(month_days) < 42:
+                last_date = month_days[-1]
+                next_date = last_date + timedelta(days=1)
+                month_days.append(next_date)
+        elif len(month_days) > 42:
+            # If more than 42 days, trim to exactly 42
+            month_days = month_days[:42]
+        
+        # Create day buttons in 6x7 grid (exactly 42 buttons)
+        for week_idx in range(6):  # Always 6 rows
+            for day_idx in range(7):  # Always 7 columns
+                button_idx = week_idx * 7 + day_idx
+                day_date = month_days[button_idx]
                 
                 # Create day button
+                if day_date.month == self.current_date.month:
+                    # Day belongs to current month
+                    day_text = str(day_date.day)
+                    state = "normal"
+                    command = lambda d=day_date: self.on_day_clicked(d)
+                else:
+                    # Day belongs to adjacent month (show as disabled without number)
+                    day_text = ""
+                    state = "disabled"
+                    command = None
+                
                 day_button = tk.Button(
-                    self.days_frame,  # Use days_frame instead of self
-                    text=str(day),
+                    self.days_frame,
+                    text=day_text,
                     font=("Arial", 9),
-                    command=lambda d=button_date: self.on_day_clicked(d),
-                    relief=tk.RAISED,
-                    bd=1
+                    command=command,
+                    relief=tk.RIDGE,
+                    bd=1,
+                    state=state
                 )
                 
-                # Set button color based on day classification
-                self._apply_day_styling(day_button, button_date)
+                # Apply styling
+                if day_date.month == self.current_date.month:
+                    # Current month day - apply normal styling
+                    self._apply_day_styling(day_button, day_date)
+                    self.day_buttons[day_date] = day_button
+                else:
+                    # Adjacent month day - gray background, no interaction
+                    day_button.config(bg="#f8f9fa", fg="#dee2e6")
                 
-                # Position button (no +1 offset since weekdays are in separate frame)
-                row = week_num
-                day_button.grid(row=row, column=day_num, sticky="nsew", padx=1, pady=1)
-                
-                # Store button reference
-                self.day_buttons[button_date] = day_button
+                # Position button
+                day_button.grid(row=week_idx, column=day_idx, sticky="nsew", padx=0, pady=0)
     
     def _apply_day_styling(self, button: tk.Button, button_date: date):
         """Apply styling to a day button based on classification and special dates."""
@@ -198,10 +227,13 @@ class CalendarMonthModule(tk.Frame):
     
     def on_day_clicked(self, clicked_date: date):
         """Handle day button click."""
+        old_date = self.current_date
         self.current_date = clicked_date
         
-        # Update button styling to show selection
-        self.update_month_display()
+        # Only update display if we changed to a different month/year
+        if (old_date.year != clicked_date.year or 
+            old_date.month != clicked_date.month):
+            self.update_month_display()
         
         # Notify parent via callback
         if self.date_selected_callback:
@@ -210,6 +242,27 @@ class CalendarMonthModule(tk.Frame):
     def refresh_display(self):
         """Refresh the month calendar display."""
         self.update_month_display()
+    
+    def refresh_colors_only(self):
+        """Refresh only the colors of existing buttons (more efficient than full rebuild)."""
+        if not self.timeline:
+            return
+            
+        for day, button in self.day_buttons.items():
+            try:
+                button_date = date(self.current_date.year, self.current_date.month, day)
+                bg_color = self.get_day_color(button_date)
+                button.config(bg=bg_color)
+                
+                # Update target date styling if applicable
+                if button_date in self.target_dates:
+                    target_info = self.target_dates[button_date]
+                    button.config(fg=target_info.get('color', 'goldenrod'), font=("Arial", 8, "bold"))
+                else:
+                    button.config(fg="black", font=("Arial", 8))
+                    
+            except (ValueError, KeyError):
+                continue
     
     def update_timeline(self, timeline: DateTimeline):
         """Update timeline reference and refresh display."""
