@@ -10,11 +10,12 @@ from typing import Dict, Optional
 
 class DayClassification(Enum):
     """Classification types for each day in the timeline."""
-    UK_RESIDENCE = "uk_residence"  # Normal UK residence day
-    SHORT_TRIP = "short_trip"      # Day during short trip (<14 days) - counts toward ILR total
-    LONG_TRIP = "long_trip"        # Day during long trip (>=14 days) - does not count toward ILR
-    PRE_ENTRY = "pre_entry"        # Before first UK entry date
-    UNKNOWN = "unknown"            # Classification not yet determined
+    UK_RESIDENCE = "uk_residence"      # Normal UK residence day (with visa coverage)
+    SHORT_TRIP = "short_trip"          # Day during short trip (<14 days) - counts toward ILR total
+    LONG_TRIP = "long_trip"            # Day during long trip (>=14 days) - does not count toward ILR
+    PRE_ENTRY = "pre_entry"            # Before first UK entry date
+    NO_VISA_COVERAGE = "no_visa_coverage"  # UK residence day without visa coverage - counts toward ILR but tracked separately
+    UNKNOWN = "unknown"                # Classification not yet determined
 
 
 class Day:
@@ -74,11 +75,24 @@ class Day:
         return (self.date >= first_entry_date and 
                 self.classification == DayClassification.SHORT_TRIP)
     
+    def counts_as_no_visa_coverage_day(self, first_entry_date: date) -> bool:
+        """
+        Check if this day is a UK residence day without visa coverage.
+        
+        Args:
+            first_entry_date: Date when ILR counting began
+            
+        Returns:
+            True if day is UK residence without visa coverage (counts toward ILR but tracked separately)
+        """
+        return (self.date >= first_entry_date and 
+                self.classification == DayClassification.NO_VISA_COVERAGE)
+    
     def counts_as_ilr_total_day(self, first_entry_date: date) -> bool:
         """
         Check if this day counts toward ILR total days.
         
-        ILR total = ILR in-UK days + short trip days
+        ILR total = ILR in-UK days + short trip days + days without visa coverage
         
         Args:
             first_entry_date: Date when ILR counting began
@@ -87,7 +101,8 @@ class Day:
             True if day counts toward ILR total
         """
         return (self.counts_as_ilr_in_uk_day(first_entry_date) or 
-                self.counts_as_short_trip_day(first_entry_date))
+                self.counts_as_short_trip_day(first_entry_date) or
+                self.counts_as_no_visa_coverage_day(first_entry_date))
     
     def counts_as_long_trip_day(self, first_entry_date: date) -> bool:
         """

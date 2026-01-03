@@ -51,6 +51,7 @@ class CalendarMonthModule(tk.Frame):
                 DayClassification.UK_RESIDENCE: "#adffc3",     # Light green
                 DayClassification.SHORT_TRIP: "#74c0fc",       # Light blue  
                 DayClassification.LONG_TRIP: "#ffa8a8",        # Light red
+                DayClassification.NO_VISA_COVERAGE: "#ffcccc", # Light red (same tone as ILR uncovered)
                 DayClassification.PRE_ENTRY: "#e9ecef",        # Disabled gray
                 DayClassification.UNKNOWN: "#fff3cd"           # Warning yellow
             }

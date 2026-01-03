@@ -167,6 +167,67 @@ class DataLoader:
         
         return validated_visa
         
+    def _validate_visa_coverage_continuity(self, validated_visas: List[Dict[str, Any]]) -> None:
+        """
+        Validate that visa periods provide continuous coverage from first entry to today.
+        
+        Args:
+            validated_visas: List of validated visa periods with parsed dates
+            
+        Raises:
+            ValueError: If there are gaps in visa coverage from first entry to today
+        """
+        if not validated_visas:
+            raise ValueError("No visa periods defined. Visa coverage required from first entry date to present.")
+        
+        # Get critical dates
+        from datetime import timedelta
+        first_entry_date = self.config.first_entry_date_obj
+        today = date.today()
+        
+        # Sort visa periods by start date
+        sorted_visas = sorted(validated_visas, key=lambda v: v["start_date_obj"])
+        
+        # Check if first visa period covers first entry date
+        first_visa = sorted_visas[0]
+        if first_visa["start_date_obj"] > first_entry_date:
+            raise ValueError(
+                f"VISA COVERAGE GAP: First visa period starts {first_visa['start_date_obj'].strftime('%d-%m-%Y')} "
+                f"but first UK entry was {first_entry_date.strftime('%d-%m-%Y')}. "
+                f"Visa coverage required from first entry date."
+            )
+        
+        # Check for gaps between visa periods up to today
+        current_coverage_end = first_visa["end_date_obj"]
+        
+        for i, visa in enumerate(sorted_visas[1:], 1):
+            visa_start = visa["start_date_obj"]
+            
+            # Stop checking if we've covered up to today
+            if current_coverage_end >= today:
+                break
+                
+            # Check for gap between current coverage and next visa
+            if visa_start > current_coverage_end + timedelta(days=1):
+                gap_start = current_coverage_end + timedelta(days=1)
+                gap_end = visa_start - timedelta(days=1)
+                raise ValueError(
+                    f"VISA COVERAGE GAP: Gap from {gap_start.strftime('%d-%m-%Y')} to {gap_end.strftime('%d-%m-%Y')} "
+                    f"between visa periods '{sorted_visas[i-1]['id']}' and '{visa['id']}'. "
+                    f"Continuous visa coverage required from first entry date to present."
+                )
+            
+            # Update coverage end to the later of current end or this visa's end
+            current_coverage_end = max(current_coverage_end, visa["end_date_obj"])
+        
+        # Check if coverage extends to today
+        if current_coverage_end < today:
+            raise ValueError(
+                f"VISA COVERAGE GAP: Visa coverage ends {current_coverage_end.strftime('%d-%m-%Y')} "
+                f"but today is {today.strftime('%d-%m-%Y')}. "
+                f"Continuous visa coverage required from first entry date to present."
+            )
+        
     def load_trips(self) -> List[Dict[str, Any]]:
         """
         Load and validate all trips from trips.json.
@@ -201,7 +262,7 @@ class DataLoader:
             List of validated visa period dictionaries
             
         Raises:
-            ValueError: If any visa period data is invalid
+            ValueError: If any visa period data is invalid or coverage gaps exist
         """
         visaPeriods_data = self.load_json_file("visaPeriods.json")
         validated_visas = []
@@ -213,6 +274,9 @@ class DataLoader:
             except ValueError as e:
                 # Raise exception instead of just warning - this will trigger the error popup
                 raise ValueError(f"Invalid visa period at index {i}: {e}")
+        
+        # CRITICAL VALIDATION: Verify visa coverage from first entry to today
+        self._validate_visa_coverage_continuity(validated_visas)
                 
         return validated_visas
             

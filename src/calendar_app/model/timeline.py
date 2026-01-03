@@ -83,7 +83,7 @@ class DateTimeline:
     
     def _classify_day_from_trip_data(self, current_date: date, trip_classifier: 'TripClassifier') -> DayClassification:
         """
-        Classify a day based on trip data from TripClassifier.
+        Classify a day based on trip data from TripClassifier and visa coverage.
         
         Args:
             current_date: Date to classify
@@ -103,7 +103,13 @@ class DateTimeline:
             return DayClassification.LONG_TRIP
         else:
             # Not part of any trip = UK residence day
-            return DayClassification.UK_RESIDENCE
+            # Check if day has visa coverage
+            visaPeriod_summary = self.visaPeriod_classifier.get_visaPeriod_summary(current_date)
+            if visaPeriod_summary['has_visaPeriod']:
+                return DayClassification.UK_RESIDENCE
+            else:
+                # UK residence day without visa coverage - counts toward ILR but tracked separately
+                return DayClassification.NO_VISA_COVERAGE
 
     def _generate_timeline(self) -> None:
         """Generate all days based on configured date range and classify them."""

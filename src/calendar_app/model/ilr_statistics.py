@@ -35,6 +35,7 @@ class ILRStatistics:
     # Raw counts
     ilr_in_uk_days: int
     short_trip_days: int
+    no_visa_coverage_days: int
     ilr_total_days: int
     long_trip_days: int
     pre_entry_days: int
@@ -182,6 +183,7 @@ class ILRStatisticsEngine:
             # Raw counts
             ilr_in_uk_days=raw_counts['ilr_in_uk_days'],
             short_trip_days=raw_counts['short_trip_days'],
+            no_visa_coverage_days=raw_counts['no_visa_coverage_days'],
             ilr_total_days=raw_counts['ilr_total_days'],
             long_trip_days=raw_counts['long_trip_days'],
             pre_entry_days=raw_counts['pre_entry_days'],
@@ -195,6 +197,103 @@ class ILRStatisticsEngine:
             first_entry_date=self.config.first_entry_date_obj,
             days_since_entry=days_since_entry
         )
+    
+    def get_remaining_days_breakdown(self, scenario: str = "total", calculation_date: Optional[date] = None) -> Dict[str, int]:
+        """
+        Get breakdown of remaining days into covered and uncovered categories.
+        
+        Args:
+            scenario: "total" or "in_uk" scenario
+            calculation_date: Date for calculation (defaults to today)
+            
+        Returns:
+            Dictionary with 'covered_remaining' and 'uncovered_remaining' counts
+        """
+        calc_date = calculation_date or date.today()
+        statistics = self.get_global_statistics(calc_date)
+        
+        # Get the appropriate scenario progress
+        if scenario == "in_uk":
+            progress = statistics.in_uk_scenario
+        else:
+            progress = statistics.total_scenario
+        
+        # If requirement is complete, no remaining days
+        if progress.is_complete:
+            return {
+                'covered_remaining': 0,
+                'uncovered_remaining': 0,
+                'total_remaining': 0
+            }
+        
+        # Count future days that would count toward ILR but need visa coverage
+        total_remaining = progress.days_remaining
+        
+        # Count how many of the remaining days needed would come from covered vs uncovered days
+        future_covered_days, future_uncovered_days = self._count_future_days_breakdown(calc_date, scenario)
+        
+        # Calculate the breakdown based on what's available in the future
+        # The remaining days will be fulfilled by a mix of future covered and uncovered days
+        if total_remaining <= future_covered_days:
+            # We have enough covered days to fulfill the entire requirement
+            covered_remaining = total_remaining
+            uncovered_remaining = 0
+        elif total_remaining <= future_covered_days + future_uncovered_days:
+            # We need both covered and uncovered days
+            covered_remaining = future_covered_days
+            uncovered_remaining = total_remaining - future_covered_days
+        else:
+            # Not enough future days in timeline (edge case)
+            covered_remaining = future_covered_days
+            uncovered_remaining = future_uncovered_days
+        
+        return {
+            'covered_remaining': covered_remaining,
+            'uncovered_remaining': uncovered_remaining,
+            'total_remaining': total_remaining
+        }
+    
+    def _count_future_days_breakdown(self, from_date: date, scenario: str) -> Tuple[int, int]:
+        """
+        Count future days that would contribute to ILR, broken down by coverage.
+        
+        Args:
+            from_date: Date to start counting from
+            scenario: "total" or "in_uk" scenario
+            
+        Returns:
+            Tuple of (covered_days, uncovered_days)
+        """
+        from calendar_app.model.day import DayClassification
+        
+        covered_count = 0
+        uncovered_count = 0
+        end_date = date(self.timeline.end_year, 12, 31)
+        current_date = from_date
+        
+        while current_date <= end_date:
+            if self.timeline.is_date_in_range(current_date):
+                day_obj = self.timeline.get_day(current_date)
+                if day_obj:
+                    classification = day_obj.classification
+                    
+                    # Count days that would contribute to the specific scenario
+                    if scenario == "in_uk":
+                        # In-UK scenario: only UK_RESIDENCE and NO_VISA_COVERAGE count
+                        if classification == DayClassification.UK_RESIDENCE:
+                            covered_count += 1
+                        elif classification == DayClassification.NO_VISA_COVERAGE:
+                            uncovered_count += 1
+                    else:
+                        # Total scenario: UK_RESIDENCE, SHORT_TRIP, and NO_VISA_COVERAGE count
+                        if classification in [DayClassification.UK_RESIDENCE, DayClassification.SHORT_TRIP]:
+                            covered_count += 1
+                        elif classification == DayClassification.NO_VISA_COVERAGE:
+                            uncovered_count += 1
+                            
+            current_date += timedelta(days=1)
+                    
+        return covered_count, uncovered_count
     
     def get_monthly_statistics(self, year: int, month: int) -> ILRStatistics:
         """
@@ -293,12 +392,13 @@ class ILRStatisticsEngine:
         Uses first_entry_date from config to determine qualifying days.
         
         Returns:
-            Dict with keys: 'ilr_in_uk_days', 'short_trip_days', 'ilr_total_days', 'long_trip_days', 'pre_entry_days'
+            Dict with keys: 'ilr_in_uk_days', 'short_trip_days', 'no_visa_coverage_days', 'ilr_total_days', 'long_trip_days', 'pre_entry_days'
         """
         first_entry = self.config.first_entry_date_obj
         counts = {
             'ilr_in_uk_days': 0,
             'short_trip_days': 0,
+            'no_visa_coverage_days': 0,
             'ilr_total_days': 0,
             'long_trip_days': 0,
             'pre_entry_days': 0
@@ -309,12 +409,14 @@ class ILRStatisticsEngine:
                 counts['ilr_in_uk_days'] += 1
             elif day.counts_as_short_trip_day(first_entry):
                 counts['short_trip_days'] += 1
+            elif day.counts_as_no_visa_coverage_day(first_entry):
+                counts['no_visa_coverage_days'] += 1
             elif day.counts_as_long_trip_day(first_entry):
                 counts['long_trip_days'] += 1
             elif day.date < first_entry:
                 counts['pre_entry_days'] += 1
         
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
+        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days'] + counts['no_visa_coverage_days']
         return counts
     
     def get_ilr_counts_for_month(self, year: int, month: int) -> Dict[str, int]:
@@ -326,6 +428,7 @@ class ILRStatisticsEngine:
         counts = {
             'ilr_in_uk_days': 0,
             'short_trip_days': 0,
+            'no_visa_coverage_days': 0,
             'ilr_total_days': 0,
             'long_trip_days': 0,
             'pre_entry_days': 0
@@ -337,12 +440,14 @@ class ILRStatisticsEngine:
                 counts['ilr_in_uk_days'] += 1
             elif day.counts_as_short_trip_day(first_entry):
                 counts['short_trip_days'] += 1
+            elif day.counts_as_no_visa_coverage_day(first_entry):
+                counts['no_visa_coverage_days'] += 1
             elif day.counts_as_long_trip_day(first_entry):
                 counts['long_trip_days'] += 1
             elif day.date < first_entry:
                 counts['pre_entry_days'] += 1
         
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
+        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days'] + counts['no_visa_coverage_days']
         return counts
     
     def get_ilr_counts_for_year(self, year: int) -> Dict[str, int]:
@@ -354,6 +459,7 @@ class ILRStatisticsEngine:
         counts = {
             'ilr_in_uk_days': 0,
             'short_trip_days': 0,
+            'no_visa_coverage_days': 0,
             'ilr_total_days': 0,
             'long_trip_days': 0,
             'pre_entry_days': 0
@@ -365,12 +471,14 @@ class ILRStatisticsEngine:
                 counts['ilr_in_uk_days'] += 1
             elif day.counts_as_short_trip_day(first_entry):
                 counts['short_trip_days'] += 1
+            elif day.counts_as_no_visa_coverage_day(first_entry):
+                counts['no_visa_coverage_days'] += 1
             elif day.counts_as_long_trip_day(first_entry):
                 counts['long_trip_days'] += 1
             elif day.date < first_entry:
                 counts['pre_entry_days'] += 1
         
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
+        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days'] + counts['no_visa_coverage_days']
         return counts
     
     def get_ilr_counts_for_date_range(self, start_date: date, end_date: date) -> Dict[str, int]:
@@ -382,6 +490,7 @@ class ILRStatisticsEngine:
         counts = {
             'ilr_in_uk_days': 0,
             'short_trip_days': 0,
+            'no_visa_coverage_days': 0,
             'ilr_total_days': 0,
             'long_trip_days': 0,
             'pre_entry_days': 0
@@ -395,11 +504,13 @@ class ILRStatisticsEngine:
                     counts['ilr_in_uk_days'] += 1
                 elif day_obj.counts_as_short_trip_day(first_entry):
                     counts['short_trip_days'] += 1
+                elif day_obj.counts_as_no_visa_coverage_day(first_entry):
+                    counts['no_visa_coverage_days'] += 1
                 elif day_obj.counts_as_long_trip_day(first_entry):
                     counts['long_trip_days'] += 1
                 elif day_obj.date < first_entry:
                     counts['pre_entry_days'] += 1
             current_date += timedelta(days=1)
         
-        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days']
+        counts['ilr_total_days'] = counts['ilr_in_uk_days'] + counts['short_trip_days'] + counts['no_visa_coverage_days']
         return counts

@@ -86,11 +86,11 @@ S  - Full classification integration with counting and querying methods
 **Goal:** Production-ready app with all MVP features
 
 ### Morning Session (2-3 hours)
-- [ ] **New Day Classification: Days Without Visa Coverage** ⚠️ *CRITICAL ADDITION*
+- [X] **New Day Classification: Days Without Visa Coverage** ⚠️ *CRITICAL ADDITION*
   - Add `NO_VISA_COVERAGE` classification to `day.py` for UK residence days not covered by any visa period
-  - These days cannot count toward ILR despite appearing as UK residence
+  - These days **count toward ILR totals** but are **tracked separately for visa requirement planning**
   - Update throughout project: ILR statistics engine, calendar view (light red color)
-  - **Test:** Days without visa coverage properly excluded from ILR counts
+  - **Test:** Days without visa coverage properly included in ILR counts but tracked as separate metric
 
 - [ ] **Year View Implementation**
   - Implement full `calendar_year_module.py` using whole column 2 (cells 2x2 and 1x2 in 2x2 grid)
@@ -110,11 +110,6 @@ S  - Full classification integration with counting and querying methods
   - External PDF opening via `os.startfile()` - same PDF opens for both flights if they share same document
   - **Test:** Click "View" button on trip day opens correct PDF files
 
-- [X] **Date Range & Navigation** ✅ *ALREADY COMPLETE*
-  - **Status:** Range is configurable via `config.json`, navigation works properly
-  - Month/year navigation within ILR-relevant scope already implemented
-  - No additional range filtering needed - ILR scope handles this automatically
-
 ### Evening Session (1-2 hours)
 - [ ] **Data Refresh System**
   - Add "Refresh" button to main UI (likely in navigation header)
@@ -122,11 +117,6 @@ S  - Full classification integration with counting and querying methods
   - Recreate all data objects (TripClassifier, DateTimeline, ILRStatisticsEngine)
   - Last refresh timestamp display
   - **Test:** Edit JSON files → click refresh → see changes immediately
-
-- [ ] **Enhanced Day Details in Day Info Module** ✅ *MOSTLY IMPLEMENTED*
-  - **Current Status:** Rich trip details with outbound/inbound flights already implemented
-  - **Remaining:** Add "View" buttons for PDF opening
-  - **Test:** Day info module shows complete trip details with PDF access
 
 **Day 3 Deliverable:** Complete, production-ready Calendar App v1.0
 
@@ -138,7 +128,7 @@ By end of Day 3, the app must:
 - [X] Show visually distinct day classifications
 - [X] Calculate correct ILR progress statistics
 - [X] Support day-click interactions with trip details ✅ *ENHANCED - Complete day info module*
-- [ ] Handle days without visa coverage (new classification)
+- [X] Handle days without visa coverage (new classification)
 - [ ] Provide both month and year calendar views
 - [ ] Show visa period boundaries in calendar
 - [ ] Open your travel PDFs externally from day details

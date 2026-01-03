@@ -259,6 +259,7 @@ class DayInfoModule(tk.Frame):
             DayClassification.UK_RESIDENCE: "UK Residence Day",
             DayClassification.SHORT_TRIP: "Short Trip Day",
             DayClassification.LONG_TRIP: "Long Trip Day", 
+            DayClassification.NO_VISA_COVERAGE: "No Visa Coverage Day",
             DayClassification.PRE_ENTRY: "Pre-Entry Day",
             DayClassification.UNKNOWN: "Unknown Classification"
         }
@@ -270,6 +271,7 @@ class DayInfoModule(tk.Frame):
             DayClassification.UK_RESIDENCE: "darkgreen",
             DayClassification.SHORT_TRIP: "darkblue",
             DayClassification.LONG_TRIP: "red",
+            DayClassification.NO_VISA_COVERAGE: "darkred",
             DayClassification.PRE_ENTRY: "gray", 
             DayClassification.UNKNOWN: "black"
         }
@@ -281,6 +283,7 @@ class DayInfoModule(tk.Frame):
             DayClassification.UK_RESIDENCE: "Counts toward ILR requirement",
             DayClassification.SHORT_TRIP: "Trip <14 days - counts toward ILR",
             DayClassification.LONG_TRIP: "Trip ≥14 days - does not count toward ILR",
+            DayClassification.NO_VISA_COVERAGE: "Counts toward ILR but needs visa coverage",
             DayClassification.PRE_ENTRY: "Before first UK entry date",
             DayClassification.UNKNOWN: "Classification not determined"
         }
