@@ -82,7 +82,8 @@ class GridLayoutManager(tk.Frame):
         self.year_info_module = YearInfoModule(self, self.timeline)
         self.day_info_module = DayInfoModule(self, self.timeline, 
                                            on_date_click=self.on_date_selected,
-                                           on_back_click=self.on_day_back_click)
+                                           on_back_click=self.on_day_back_click,
+                                           pdf_directory=self.config.travel_pdf_path)
         
         # Top-left: ILR Statistics Module
         self.ilr_statistics_module = ILRStatisticsModule(

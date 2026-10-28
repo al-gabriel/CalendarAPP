@@ -27,6 +27,9 @@ def run_all_tests():
         from model.test_visaPeriods import run_all_visaPeriod_tests
         from model.test_ilr_statistics import run_all_ilr_statistics_tests
         
+        # Storage tests
+        from storage.test_pdf_index import run_all_pdf_index_tests
+        
         # Integration tests
         from test_ilr_requirement import test_ilr_requirement_calculation, test_leap_year_scenarios
         
@@ -43,6 +46,7 @@ def run_all_tests():
         ("Visa Classifier Tests", run_all_visaPeriod_tests),
         ("Timeline Tests", run_all_timeline_tests),
         ("ILR Statistics Engine Tests", run_all_ilr_statistics_tests),
+        ("PDF Index Tests", run_all_pdf_index_tests),
         ("ILR Requirement Tests", test_ilr_requirement_calculation),
         ("Leap Year ILR Tests", test_leap_year_scenarios)
     ]

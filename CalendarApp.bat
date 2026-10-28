@@ -1,11 +1,13 @@
 @echo off
 REM ============================================================================
-REM Calendar App Launcher - Double-click this file to run the app
+REM Calendar App Launcher - Console Mode (for debugging/development)
 REM ============================================================================
 REM 
 REM This is a Windows batch file (.bat) - like a shell script in C/Unix
 REM @echo off = don't show commands as they execute (cleaner output)
 REM REM = comment line (like // in C)
+REM 
+REM For GUI-only mode (no console), use CalendarApp_GUI.bat instead
 
 REM Change to the src directory (parent of calendar_app package)
 REM %~dp0 = directory where this batch file is located

@@ -32,7 +32,7 @@
 - [X] **Date Timeline Foundation**
   - `model/dates.py` - generate 2023-2040 day-by-day timeline
   - Each day knows its date and basic classification
-S  - Full classification integration with counting and querying methods
+  - Full classification integration with counting and querying methods
   - **Test:** App can identify any date within range and count classifications
 
 **Day 1 Deliverable:** Working calendar app that loads your data and shows navigable month views
@@ -106,11 +106,11 @@ S  - Full classification integration with counting and querying methods
   - **Test:** ✅ Visa periods clearly visible in both month and year views
 
 ### Afternoon Session (2-3 hours)
-- [ ] **PDF Integration in Day Info Module**
+- [X] **PDF Integration in Day Info Module** ✅ *COMPLETED - View buttons for travel PDFs*
   - Implement "View" buttons in `day_info_module.py` for specific outbound/inbound flights
   - Create `storage/pdf_index.py` for filename pattern matching
   - External PDF opening via `os.startfile()` - same PDF opens for both flights if they share same document
-  - **Test:** Click "View" button on trip day opens correct PDF files
+  - **Test:** ✅ Click "View" button on trip day opens correct PDF files
 
 **Day 3 Deliverable:** Complete, production-ready Calendar App v1.0
 
@@ -125,7 +125,7 @@ By end of Day 3, the app must:
 - [X] Handle days without visa coverage (new classification)
 - [X] Provide both month and year calendar views ✅ *COMPLETED*
 - [X] Show visa period boundaries in calendar
-- [ ] Open your travel PDFs externally from day details
+- [X] Open your travel PDFs externally from day details
 
 ---
 

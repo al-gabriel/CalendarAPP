@@ -6,12 +6,17 @@ trip information, visa period information, and clickable navigation.
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from datetime import date
 from typing import Optional, Callable
+from pathlib import Path
+import os
+import subprocess
+import platform
 
 from calendar_app.model.timeline import DateTimeline
 from calendar_app.model.day import DayClassification
+from calendar_app.storage.pdf_index import PDFIndex
 
 
 class DayInfoModule(tk.Frame):
@@ -27,7 +32,8 @@ class DayInfoModule(tk.Frame):
     
     def __init__(self, parent: tk.Widget, timeline: Optional[DateTimeline] = None,
                  on_date_click: Optional[Callable[[date], None]] = None,
-                 on_back_click: Optional[Callable[[], None]] = None):
+                 on_back_click: Optional[Callable[[], None]] = None,
+                 pdf_directory: Optional[Path] = None):
         """Initialize the Day Info module."""
         super().__init__(parent, relief=tk.RAISED, bd=1, padx=5, pady=4)
         
@@ -36,8 +42,19 @@ class DayInfoModule(tk.Frame):
         self.on_date_click = on_date_click
         self.on_back_click = on_back_click
         
+        # PDF index for travel documents (folder comes from config.travel_pdf_path)
+        self.pdf_index: Optional[PDFIndex] = None
+        self.set_pdf_directory(pdf_directory)
+        
         # Setup UI
         self.setup_ui()
+    
+    def set_pdf_directory(self, pdf_directory: Optional[Path]):
+        """Point the PDF index at the travel PDF folder (disabled if missing)."""
+        if pdf_directory is not None and Path(pdf_directory).is_dir():
+            self.pdf_index = PDFIndex(str(pdf_directory))
+        else:
+            self.pdf_index = None
     
     def setup_ui(self):
         """Set up the UI components."""
@@ -187,6 +204,16 @@ class DayInfoModule(tk.Frame):
                                   cursor="hand2", fg="darkblue", bg=self.cget("bg"),
                                   command=lambda: self._on_date_button_click(departure_date))
             dep_button.pack(side=tk.LEFT)
+            
+            # Add PDF View button for outbound flight
+            if self.pdf_index:
+                pdf_path = self.pdf_index.find_pdf_for_date(departure_date, trip_info.get("return_date"))
+                if pdf_path:
+                    view_button = tk.Button(dep_frame, text="View", font=("Arial", 8), 
+                                          relief=tk.RAISED, bd=1, cursor="hand2", 
+                                          fg="white", bg="#2196F3", padx=8, pady=1,
+                                          command=lambda p=pdf_path: self._open_pdf(p))
+                    view_button.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Return date with flight route
         return_date = trip_info.get("return_date")
@@ -207,6 +234,16 @@ class DayInfoModule(tk.Frame):
                                   cursor="hand2", fg="darkblue", bg=self.cget("bg"),
                                   command=lambda: self._on_date_button_click(return_date))
             ret_button.pack(side=tk.LEFT)
+            
+            # Add PDF View button for inbound flight
+            if self.pdf_index:
+                pdf_path = self.pdf_index.find_pdf_for_date(return_date, departure_date)
+                if pdf_path:
+                    view_button = tk.Button(ret_frame, text="View", font=("Arial", 8), 
+                                          relief=tk.RAISED, bd=1, cursor="hand2", 
+                                          fg="white", bg="#2196F3", padx=8, pady=1,
+                                          command=lambda p=pdf_path: self._open_pdf(p))
+                    view_button.pack(side=tk.RIGHT, padx=(5, 0))
     
     def show_visa_section(self, day_obj):
         """Show visa period information if day has visa coverage."""
@@ -289,6 +326,27 @@ class DayInfoModule(tk.Frame):
         }
         return descriptions.get(classification, "")
     
+    def _open_pdf(self, pdf_path: str):
+        """
+        Open PDF file using the system's default PDF viewer.
+        
+        Args:
+            pdf_path: Full path to the PDF file to open
+        """
+        try:
+            if platform.system() == 'Windows':
+                # Windows - use os.startfile()
+                os.startfile(pdf_path)
+            elif platform.system() == 'Darwin':
+                # macOS - use 'open' command
+                subprocess.run(['open', pdf_path], check=True)
+            else:
+                # Linux - use 'xdg-open' command
+                subprocess.run(['xdg-open', pdf_path], check=True)
+        except Exception as e:
+            # Shown as a dialog because there is no console under pythonw
+            messagebox.showerror("Cannot open PDF", f"Error opening PDF file:\n{pdf_path}\n\n{e}")
+    
     def _on_date_button_click(self, clicked_date: date):
         """Handle click on any date button."""
         if self.on_date_click:
@@ -297,4 +355,5 @@ class DayInfoModule(tk.Frame):
     def update_config_and_timeline(self, config, timeline):
         """Update configuration and timeline references."""
         self.timeline = timeline
+        self.set_pdf_directory(getattr(config, "travel_pdf_path", None))
         self.refresh_info()

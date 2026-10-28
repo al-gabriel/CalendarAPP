@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CalendarApp",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "calendar_app.main",
+            "cwd": "${workspaceFolder}/src",
+            "env": { "PYTHONPATH": "${workspaceFolder}/src" },
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Run all tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/run_all_tests.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

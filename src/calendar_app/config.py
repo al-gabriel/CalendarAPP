@@ -164,8 +164,9 @@ class AppConfig:
             # Path is already absolute (like C:\Users\...)
             self.travel_pdf_path = travel_path
         else:
-            # Path is relative (like ../travel_pdfs), make it absolute
-            self.travel_pdf_path = self.project_root / self.travel_pdf_folder
+            # Path is relative (like ../travel_pdfs): resolve it against the
+            # data/ folder that holds config.json, so "../travel_pdfs" = <project>/travel_pdfs
+            self.travel_pdf_path = (self.config_path.parent / travel_path).resolve()
             
     def get_summary(self) -> str:
         """
